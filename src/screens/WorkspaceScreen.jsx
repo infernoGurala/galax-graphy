@@ -282,7 +282,7 @@ export default function WorkspaceScreen() {
                 if (!isEditing) handleCardPointerDown(e, ws.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, ws.id)}
-              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-all duration-150 select-none flex flex-col justify-between h-36 cursor-pointer"
+              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-[border-color,box-shadow,background-color] duration-150 select-none flex flex-col justify-between h-36 cursor-pointer"
             >
               <div className="flex-1 min-w-0">
                 {isEditing ? (

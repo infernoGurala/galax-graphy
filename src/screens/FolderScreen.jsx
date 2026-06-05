@@ -480,7 +480,7 @@ export default function FolderScreen() {
                 if (!isEditing) handleCardPointerDown(e, item.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, item)}
-              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-all duration-150 flex flex-col justify-between h-36 cursor-pointer"
+              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-[border-color,box-shadow,background-color] duration-150 flex flex-col justify-between h-36 cursor-pointer"
             >
               <div className="flex-1 min-w-0">
                 {isEditing ? (
