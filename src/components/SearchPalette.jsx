@@ -19,7 +19,7 @@ export default function SearchPalette({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+
 
   // Build searchable items list safely
   const safeFolders = Array.isArray(folders) ? folders.filter(f => f && typeof f === 'object') : [];
@@ -112,6 +112,8 @@ export default function SearchPalette({ isOpen, onClose }) {
       }
     }
   }, [selectedIndex]);
+
+  if (!isOpen) return null;
 
   return (
     <div 
