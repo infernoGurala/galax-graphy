@@ -11,7 +11,6 @@ import SearchPalette from './components/SearchPalette';
 export default function App() {
   const { isAuthenticated, loadData, currentScreen, isLoading, goBack, navigateToWorkspaces } = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
-  const lastSpaceTimeRef = useRef(0);
 
   // Load data on initial mount once authenticated
   useEffect(() => {
@@ -20,7 +19,7 @@ export default function App() {
     }
   }, [isAuthenticated, loadData]);
 
-  // Bind global keyboard shortcuts (Alt+Space = Home, Esc = Back, Double-Space = Search)
+  // Bind global keyboard shortcuts (Alt+Space = Home, Esc = Back, Ctrl+Space = Search)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isAuthenticated) return;
@@ -49,25 +48,10 @@ export default function App() {
         }
       }
 
-      // Rapid Double Space (Search Database)
-      if (e.key === ' ' || e.code === 'Space') {
-        const activeEl = document.activeElement;
-        const isFormInput = activeEl && (
-          activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
-          activeEl.tagName === 'SELECT' ||
-          activeEl.isContentEditable ||
-          activeEl.classList.contains('ProseMirror')
-        );
-
-        if (!isFormInput) {
-          e.preventDefault(); // Prevent default browser scrolling/clicking actions on Space
-          const currentTime = Date.now();
-          if (currentTime - lastSpaceTimeRef.current < 400) {
-            setSearchOpen(prev => !prev);
-          }
-          lastSpaceTimeRef.current = currentTime;
-        }
+      // Ctrl + Space (Search Database)
+      if (e.ctrlKey && (e.key === ' ' || e.code === 'Space')) {
+        e.preventDefault();
+        setSearchOpen(prev => !prev);
       }
     };
 

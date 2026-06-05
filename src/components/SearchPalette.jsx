@@ -111,11 +111,11 @@ export default function SearchPalette({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-start justify-center pt-[15vh] z-50 font-sans p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50 font-sans p-4"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg bg-surface border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="w-full max-w-lg bg-surface border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Input */}
