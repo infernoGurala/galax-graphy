@@ -21,11 +21,15 @@ export default function SearchPalette({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
-  // Build searchable items list
+  // Build searchable items list safely
+  const safeFolders = Array.isArray(folders) ? folders.filter(f => f && typeof f === 'object') : [];
+  const safeNotes = Array.isArray(notes) ? notes.filter(n => n && typeof n === 'object') : [];
+  const safeCanvases = Array.isArray(canvases) ? canvases.filter(c => c && typeof c === 'object') : [];
+
   const allItems = [
-    ...folders.map(f => ({ ...f, type: 'folder', name: f.name })),
-    ...notes.map(n => ({ ...n, type: 'note', name: n.title })),
-    ...canvases.filter(c => c.is_standalone).map(c => ({ ...c, type: 'canvas', name: c.title }))
+    ...safeFolders.map(f => ({ ...f, type: 'folder', name: f.name || 'Untitled Folder' })),
+    ...safeNotes.map(n => ({ ...n, type: 'note', name: n.title || 'Untitled Note' })),
+    ...safeCanvases.filter(c => c.is_standalone).map(c => ({ ...c, type: 'canvas', name: c.title || 'Untitled Canvas' }))
   ];
 
   // Filter items based on query
@@ -36,12 +40,16 @@ export default function SearchPalette({ isOpen, onClose }) {
       );
 
   const getPath = (item) => {
-    const ws = workspaces.find(w => w.id === item.workspace_id);
-    const wsName = ws ? ws.name : 'Unknown Workspace';
+    if (!item) return '';
+    const wsList = Array.isArray(workspaces) ? workspaces : [];
+    const fList = Array.isArray(folders) ? folders : [];
+
+    const ws = wsList.find(w => w && w.id === item.workspace_id);
+    const wsName = ws ? (ws.name || 'Untitled Workspace') : 'Unknown Workspace';
     
     if (item.type === 'note') {
-      const folder = folders.find(f => f.id === item.folder_id);
-      return folder ? `${wsName} > ${folder.name}` : wsName;
+      const folder = fList.find(f => f && f.id === item.folder_id);
+      return folder ? `${wsName} > ${folder.name || 'Untitled Folder'}` : wsName;
     }
     return wsName;
   };

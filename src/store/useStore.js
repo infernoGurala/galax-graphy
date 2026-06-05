@@ -515,7 +515,7 @@ export const useStore = create((set, get) => ({
     set(state => {
       const canvases = state.canvases.map(c => c.id === id ? { ...c, title, updated_at } : c);
       if (!isSupabaseConfigured) {
-        localStorage.setItem(LS_KEYS.CANVACES, JSON.stringify(canvases));
+        localStorage.setItem(LS_KEYS.CANVASES, JSON.stringify(canvases));
       }
       return { canvases };
     });
