@@ -347,7 +347,7 @@ export default function WorkspaceScreen() {
                 if (!isEditing) handleCardPointerDown(e, ws.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, ws.id)}
-              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-[border-color,box-shadow,background-color] duration-150 select-none flex flex-col justify-between h-36 cursor-pointer"
+              className="group w-72 p-5 bg-surface/75 border-l-2 border-y border-r border-l-border border-y-border border-r-border hover:border-l-accent hover:border-y-border/60 hover:border-r-border/60 rounded-r-lg rounded-l-xs shadow-md hover:shadow-[0_0_20px_rgba(2,132,199,0.12)] transition-all duration-150 select-none flex flex-col justify-between h-36 cursor-pointer"
             >
               <div className="flex-1 min-w-0">
                 {isEditing ? (
@@ -368,30 +368,42 @@ export default function WorkspaceScreen() {
                   </div>
                 ) : (
                   <>
-                    <h3 className="font-bold text-text text-base leading-snug truncate group-hover:text-accent transition-colors duration-100">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[9px] text-text-muted tracking-widest">
+                        WS // {(index + 1).toString().padStart(2, '0')}
+                      </span>
+                      <span className="text-[8px] font-extrabold text-accent border border-accent/20 bg-accent/5 px-1 rounded select-none">
+                        LOCAL
+                      </span>
+                    </div>
+
+                    <h3 className="font-bold text-text text-lg leading-snug truncate mt-2 group-hover:text-accent transition-colors duration-150">
                       {ws.name}
                     </h3>
-                    <span className="text-[9px] text-text-muted uppercase tracking-wider font-bold block mt-1">
-                      Added {new Date(ws.created_at).toLocaleDateString()}
-                    </span>
                   </>
                 )}
               </div>
 
               {!isEditing && (
-                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-4 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider mt-4">
-                  <button
-                    onClick={(e) => handleStartRename(e, ws.id, ws.name)}
-                    className="text-text-muted hover:text-accent transition-colors cursor-pointer"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    onClick={(e) => handleDelete(e, ws.id)}
-                    className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
-                  >
-                    Delete
-                  </button>
+                <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
+                  <span className="font-mono text-[8px] text-text-muted">
+                    LOC // {pos.x}, {pos.y}
+                  </span>
+                  
+                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider">
+                    <button
+                      onClick={(e) => handleStartRename(e, ws.id, ws.name)}
+                      className="text-text-muted hover:text-accent transition-colors cursor-pointer"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, ws.id)}
+                      className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

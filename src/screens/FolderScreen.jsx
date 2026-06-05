@@ -535,7 +535,13 @@ export default function FolderScreen() {
                 if (!isEditing) handleCardPointerDown(e, item.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, item)}
-              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-[border-color,box-shadow,background-color] duration-150 flex flex-col justify-between h-36 cursor-pointer"
+              className={`group w-72 p-5 bg-surface/75 border-l-2 border-y border-r border-y-border border-r-border rounded-r-lg rounded-l-xs shadow-md hover:shadow-[0_0_20px_rgba(2,132,199,0.12)] transition-all duration-150 select-none flex flex-col justify-between h-36 cursor-pointer ${
+                item.type === 'canvas' 
+                  ? 'border-l-accent' 
+                  : item.type === 'folder'
+                  ? 'border-l-yellow-500'
+                  : 'border-l-text-muted'
+              }`}
             >
               <div className="flex-1 min-w-0">
                 {isEditing ? (
@@ -556,37 +562,48 @@ export default function FolderScreen() {
                   </div>
                 ) : (
                   <>
-                    <h3 className="font-bold text-text text-base leading-snug truncate group-hover:text-accent transition-colors duration-100">
-                      {item.name || 'Untitled'}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border border-border ${
-                        item.type === 'canvas' ? 'text-accent border-accent/20 bg-accent/5' : 'text-text-muted bg-bg'
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-mono text-[9px] text-text-muted tracking-widest">
+                        {item.type.toUpperCase()} // {(index + 1).toString().padStart(2, '0')}
+                      </span>
+                      <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border ${
+                        item.type === 'canvas' 
+                          ? 'text-accent border-accent/20 bg-accent/5' 
+                          : item.type === 'folder'
+                          ? 'text-yellow-500 border-yellow-500/20 bg-yellow-500/5'
+                          : 'text-text-muted border-border bg-bg'
                       }`}>
                         {item.type}
                       </span>
-                      <span className="text-[8px] text-text-muted uppercase tracking-wider font-semibold">
-                        {new Date(item.created_at || item.updated_at).toLocaleDateString()}
-                      </span>
                     </div>
+
+                    <h3 className="font-bold text-text text-lg leading-snug truncate mt-2 group-hover:text-accent transition-colors duration-150">
+                      {item.name || 'Untitled'}
+                    </h3>
                   </>
                 )}
               </div>
 
               {!isEditing && (
-                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-4 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider mt-4">
-                  <button
-                    onClick={(e) => handleStartRename(e, item.id, item.name, item.type)}
-                    className="text-text-muted hover:text-accent transition-colors cursor-pointer"
-                  >
-                    Rename
-                  </button>
-                  <button
-                    onClick={(e) => handleDelete(e, item.id, item.type)}
-                    className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
-                  >
-                    Delete
-                  </button>
+                <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
+                  <span className="font-mono text-[8px] text-text-muted">
+                    LOC // {pos.x}, {pos.y}
+                  </span>
+                  
+                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider">
+                    <button
+                      onClick={(e) => handleStartRename(e, item.id, item.name, item.type)}
+                      className="text-text-muted hover:text-accent transition-colors cursor-pointer"
+                    >
+                      Rename
+                    </button>
+                    <button
+                      onClick={(e) => handleDelete(e, item.id, item.type)}
+                      className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
