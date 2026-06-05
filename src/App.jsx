@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from './store/useStore';
 import PasswordGate from './components/PasswordGate';
 import TopBar from './components/TopBar';
@@ -6,9 +6,12 @@ import WorkspaceScreen from './screens/WorkspaceScreen';
 import FolderScreen from './screens/FolderScreen';
 import NoteScreen from './screens/NoteScreen';
 import CanvasView from './canvas/CanvasView';
+import SearchPalette from './components/SearchPalette';
 
 export default function App() {
   const { isAuthenticated, loadData, currentScreen, isLoading, goBack, navigateToWorkspaces } = useStore();
+  const [searchOpen, setSearchOpen] = useState(false);
+  const lastSpaceTimeRef = useRef(0);
 
   // Load data on initial mount once authenticated
   useEffect(() => {
@@ -17,7 +20,7 @@ export default function App() {
     }
   }, [isAuthenticated, loadData]);
 
-  // Bind global keyboard shortcuts (Alt+Space = Home, Esc = Back)
+  // Bind global keyboard shortcuts (Alt+Space = Home, Esc = Back, Double-Space = Search)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isAuthenticated) return;
@@ -43,6 +46,27 @@ export default function App() {
         if (!isFormInput) {
           e.preventDefault();
           goBack();
+        }
+      }
+
+      // Rapid Double Space (Search Database)
+      if (e.key === ' ' || e.code === 'Space') {
+        const activeEl = document.activeElement;
+        const isFormInput = activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.isContentEditable ||
+          activeEl.classList.contains('ProseMirror')
+        );
+
+        if (!isFormInput) {
+          const currentTime = Date.now();
+          if (currentTime - lastSpaceTimeRef.current < 250) {
+            e.preventDefault();
+            setSearchOpen(prev => !prev);
+          }
+          lastSpaceTimeRef.current = currentTime;
         }
       }
     };
@@ -90,6 +114,9 @@ export default function App() {
 
         {renderActiveScreen()}
       </main>
+
+      {/* Global database search palette */}
+      <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

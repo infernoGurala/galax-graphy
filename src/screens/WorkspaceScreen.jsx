@@ -13,6 +13,7 @@ export default function WorkspaceScreen() {
   } = useStore();
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [creationPos, setCreationPos] = useState({ x: 150, y: 150 });
@@ -23,16 +24,19 @@ export default function WorkspaceScreen() {
   const boardRef = useRef(null);
   const contentRef = useRef(null);
 
-  // Dragging & Panning Refs (avoiding React state re-renders for 60 FPS fluid motion)
+  // Refs for zero-latency 60 FPS animations
   const isPanningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
   const panOffsetRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
 
   const draggedIdRef = useRef(null);
   const draggedElementRef = useRef(null);
   const dragStartMouseRef = useRef({ x: 0, y: 0 });
   const dragStartPosRef = useRef({ x: 0, y: 0 });
-  const hasMovedRef = useRef(false); // To separate Click from Drag
+  const hasMovedRef = useRef(false);
+
+  const syncTimeoutRef = useRef(null);
 
   // Load layout positions
   const savedLayout = getPluginData('spatial-layout', 'workspaces-root', 'positions') || {};
@@ -67,11 +71,10 @@ export default function WorkspaceScreen() {
         );
         if (!isFormInput) {
           e.preventDefault();
-          // Spawn at center of screen relative to pan offset
           const boardEl = boardRef.current;
           const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
           const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
-          setCreationPos({ x, y });
+          setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
           setIsCreating(true);
           setNewName('');
         }
@@ -80,6 +83,52 @@ export default function WorkspaceScreen() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isCreating, editingId]);
+
+  // Bind Non-Passive Wheel Event for Zooming (keeps mouse cursor centered during zoom)
+  useEffect(() => {
+    const boardEl = boardRef.current;
+    if (!boardEl) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const zoomIntensity = 0.08;
+      const rect = boardEl.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Current mouse position on board relative space
+      const boardX = (mouseX - panOffsetRef.current.x) / zoomRef.current;
+      const boardY = (mouseY - panOffsetRef.current.y) / zoomRef.current;
+
+      const delta = -e.deltaY;
+      let newZoom = zoomRef.current + (delta > 0 ? 1 : -1) * zoomIntensity;
+      newZoom = Math.min(Math.max(0.25, newZoom), 2.5); // Zoom boundary [0.25, 2.5]
+
+      const newPanX = mouseX - boardX * newZoom;
+      const newPanY = mouseY - boardY * newZoom;
+
+      panOffsetRef.current = { x: newPanX, y: newPanY };
+      zoomRef.current = newZoom;
+
+      // Apply style transform in DOM directly
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate(${newPanX}px, ${newPanY}px) scale(${newZoom})`;
+      }
+
+      // Debounced State Sync
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        setPanOffset(panOffsetRef.current);
+        setZoom(zoomRef.current);
+      }, 100);
+    };
+
+    boardEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      boardEl.removeEventListener('wheel', handleWheel);
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, []);
 
   // Pointer Down on Board (Panning)
   const handleBoardPointerDown = (e) => {
@@ -99,7 +148,6 @@ export default function WorkspaceScreen() {
     draggedElementRef.current = element;
     hasMovedRef.current = false;
     
-    // Capture pointer to track dragging outside bounds
     element.setPointerCapture(e.pointerId);
 
     const pos = getWorkspacePos(wsId, index);
@@ -107,16 +155,15 @@ export default function WorkspaceScreen() {
     dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
   };
 
-  // Shared Pointer Move Handler
+  // Pointer Move
   const handlePointerMove = (e) => {
     if (isPanningRef.current) {
       const dx = e.clientX - panStartRef.current.x;
       const dy = e.clientY - panStartRef.current.y;
       panOffsetRef.current = { x: dx, y: dy };
       
-      // Update DOM transform directly for zero lag
       if (contentRef.current) {
-        contentRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+        contentRef.current.style.transform = `translate(${dx}px, ${dy}px) scale(${zoomRef.current})`;
       }
     } else if (draggedIdRef.current && draggedElementRef.current) {
       const dx = e.clientX - dragStartMouseRef.current.x;
@@ -127,24 +174,24 @@ export default function WorkspaceScreen() {
       }
 
       if (hasMovedRef.current) {
-        const newX = Math.max(10, dragStartPosRef.current.x + dx);
-        const newY = Math.max(10, dragStartPosRef.current.y + dy);
+        // Lock coordinate calculations to zoom level to prevent card drifting
+        const newX = Math.max(10, dragStartPosRef.current.x + dx / zoomRef.current);
+        const newY = Math.max(10, dragStartPosRef.current.y + dy / zoomRef.current);
         
-        // Update card coordinates in real-time in the DOM
         draggedElementRef.current.style.left = `${newX}px`;
         draggedElementRef.current.style.top = `${newY}px`;
       }
     }
   };
 
-  // Shared Pointer Up Handler
+  // Pointer Up
   const handlePointerUp = async (e) => {
     if (isPanningRef.current) {
       isPanningRef.current = false;
       if (boardRef.current) {
         boardRef.current.releasePointerCapture(e.pointerId);
       }
-      setPanOffset(panOffsetRef.current); // Sync to React state
+      setPanOffset(panOffsetRef.current);
     } else if (draggedIdRef.current && draggedElementRef.current) {
       const id = draggedIdRef.current;
       const element = draggedElementRef.current;
@@ -157,7 +204,6 @@ export default function WorkspaceScreen() {
         const finalX = parseInt(element.style.left, 10);
         const finalY = parseInt(element.style.top, 10);
         
-        // Save final position in database/store
         positionsRef.current = {
           ...positionsRef.current,
           [id]: { x: finalX, y: finalY }
@@ -180,8 +226,9 @@ export default function WorkspaceScreen() {
     if (e.target !== boardRef.current || isCreating) return;
     const rect = boardRef.current.getBoundingClientRect();
     
-    const x = e.clientX - rect.left - panOffsetRef.current.x;
-    const y = e.clientY - rect.top - panOffsetRef.current.y;
+    // Scale double-click creation coordinates
+    const x = (e.clientX - rect.left - panOffsetRef.current.x) / zoomRef.current;
+    const y = (e.clientY - rect.top - panOffsetRef.current.y) / zoomRef.current;
     
     setCreationPos({ x, y });
     setIsCreating(true);
@@ -213,14 +260,29 @@ export default function WorkspaceScreen() {
     setEditingId(null);
   };
 
+  const handleCancelRename = (e) => {
+    e.stopPropagation();
+    setEditingId(null);
+  };
+
+  const handleDelete = async (e, id) => {
+    e.stopPropagation();
+    if (confirm('Are you sure you want to delete this workspace?')) {
+      await deleteWorkspace(id);
+    }
+  };
+
   const handleCreateButtonHUD = () => {
     const boardEl = boardRef.current;
     const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
     const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
-    setCreationPos({ x, y });
+    setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
     setIsCreating(true);
     setNewName('');
   };
+
+  // Convert zoom scale to display percent
+  const zoomPercent = Math.round(zoom * 100);
 
   return (
     <div 
@@ -232,17 +294,19 @@ export default function WorkspaceScreen() {
       style={{ 
         backgroundImage: 'radial-gradient(#2E2D31 1.5px, transparent 1.5px)', 
         backgroundSize: '32px 32px',
-        touchAction: 'none' // Prevent browser scrolling
+        touchAction: 'none'
       }}
       className="w-full h-[calc(100vh-68px)] bg-bg relative overflow-hidden select-none font-sans cursor-grab active:cursor-grabbing"
     >
-      {/* Top HUD Controls (Zero Friction Buttons) */}
+      {/* Top HUD Controls */}
       <div className="absolute top-4 left-6 right-6 flex items-center justify-between pointer-events-none z-10">
-        <div className="bg-surface/85 border border-border px-3.5 py-2 rounded-lg backdrop-blur-md flex flex-col gap-0.5">
-          <h1 className="text-[11px] font-bold uppercase tracking-wider text-text">Workspace Board</h1>
-          <p className="text-[9px] text-text-muted uppercase font-semibold">
-            Double-click board or press 'N' to create · Drag background to pan
-          </p>
+        <div className="bg-surface/85 border border-border px-3.5 py-2 rounded-lg backdrop-blur-md flex items-center gap-4">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-[11px] font-bold uppercase tracking-wider text-text">Workspace Board</h1>
+            <p className="text-[9px] text-text-muted uppercase font-semibold">
+              Scroll to Zoom ({zoomPercent}%) · Double-click board or press 'N' to create
+            </p>
+          </div>
         </div>
 
         <button
@@ -257,7 +321,8 @@ export default function WorkspaceScreen() {
       <div 
         ref={contentRef}
         style={{
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+          transformOrigin: '0 0',
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none'
@@ -339,8 +404,8 @@ export default function WorkspaceScreen() {
         <div 
           style={{ 
             position: 'absolute',
-            left: creationPos.x + panOffset.x,
-            top: creationPos.y + panOffset.y,
+            left: creationPos.x * zoom + panOffset.x,
+            top: creationPos.y * zoom + panOffset.y,
             zIndex: 100
           }}
           className="p-4 bg-surface border border-accent rounded-lg shadow-2xl w-64 animate-in zoom-in-95 duration-100"

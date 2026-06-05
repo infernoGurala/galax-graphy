@@ -25,6 +25,7 @@ export default function FolderScreen() {
   } = useStore();
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
   const [isCreatingMenu, setIsCreatingMenu] = useState(false);
   const [creationType, setCreationType] = useState('');
   const [creationName, setCreationName] = useState('');
@@ -41,12 +42,15 @@ export default function FolderScreen() {
   const isPanningRef = useRef(false);
   const panStartRef = useRef({ x: 0, y: 0 });
   const panOffsetRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
 
   const draggedIdRef = useRef(null);
   const draggedElementRef = useRef(null);
   const dragStartMouseRef = useRef({ x: 0, y: 0 });
   const dragStartPosRef = useRef({ x: 0, y: 0 });
   const hasMovedRef = useRef(false);
+
+  const syncTimeoutRef = useRef(null);
 
   // Filter items
   const workspaceFolders = folders.filter(f => f.workspace_id === currentWorkspaceId);
@@ -68,11 +72,13 @@ export default function FolderScreen() {
   }, [JSON.stringify(itemPositions)]);
 
   useEffect(() => {
-    // Reset panning on context change
+    // Reset panning and zoom on context change
     setPanOffset({ x: 0, y: 0 });
+    setZoom(1);
     panOffsetRef.current = { x: 0, y: 0 };
+    zoomRef.current = 1;
     if (contentRef.current) {
-      contentRef.current.style.transform = `translate(0px, 0px)`;
+      contentRef.current.style.transform = `translate(0px, 0px) scale(1)`;
     }
   }, [activeContextId]);
 
@@ -92,7 +98,7 @@ export default function FolderScreen() {
           const boardEl = boardRef.current;
           const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
           const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
-          setCreationPos({ x, y });
+          setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
           if (currentFolderId === null) {
             setIsCreatingMenu(true);
           } else {
@@ -105,6 +111,52 @@ export default function FolderScreen() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isCreatingMenu, creationType, editingId, currentFolderId]);
+
+  // Bind Non-Passive Wheel Event for Zooming (keeps mouse cursor centered during zoom)
+  useEffect(() => {
+    const boardEl = boardRef.current;
+    if (!boardEl) return;
+
+    const handleWheel = (e) => {
+      e.preventDefault();
+      const zoomIntensity = 0.08;
+      const rect = boardEl.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Current mouse position on board relative space
+      const boardX = (mouseX - panOffsetRef.current.x) / zoomRef.current;
+      const boardY = (mouseY - panOffsetRef.current.y) / zoomRef.current;
+
+      const delta = -e.deltaY;
+      let newZoom = zoomRef.current + (delta > 0 ? 1 : -1) * zoomIntensity;
+      newZoom = Math.min(Math.max(0.25, newZoom), 2.5); // Zoom boundary [0.25, 2.5]
+
+      const newPanX = mouseX - boardX * newZoom;
+      const newPanY = mouseY - boardY * newZoom;
+
+      panOffsetRef.current = { x: newPanX, y: newPanY };
+      zoomRef.current = newZoom;
+
+      // Apply style transform in DOM directly
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate(${newPanX}px, ${newPanY}px) scale(${newZoom})`;
+      }
+
+      // Debounced State Sync
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+      syncTimeoutRef.current = setTimeout(() => {
+        setPanOffset(panOffsetRef.current);
+        setZoom(zoomRef.current);
+      }, 100);
+    };
+
+    boardEl.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      boardEl.removeEventListener('wheel', handleWheel);
+      if (syncTimeoutRef.current) clearTimeout(syncTimeoutRef.current);
+    };
+  }, []);
 
   // Get position of items
   const getItemPos = (itemId, index) => {
@@ -150,7 +202,7 @@ export default function FolderScreen() {
       panOffsetRef.current = { x: dx, y: dy };
       
       if (contentRef.current) {
-        contentRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+        contentRef.current.style.transform = `translate(${dx}px, ${dy}px) scale(${zoomRef.current})`;
       }
     } else if (draggedIdRef.current && draggedElementRef.current) {
       const dx = e.clientX - dragStartMouseRef.current.x;
@@ -161,8 +213,8 @@ export default function FolderScreen() {
       }
 
       if (hasMovedRef.current) {
-        const newX = Math.max(10, dragStartPosRef.current.x + dx);
-        const newY = Math.max(10, dragStartPosRef.current.y + dy);
+        const newX = Math.max(10, dragStartPosRef.current.x + dx / zoomRef.current);
+        const newY = Math.max(10, dragStartPosRef.current.y + dy / zoomRef.current);
         
         draggedElementRef.current.style.left = `${newX}px`;
         draggedElementRef.current.style.top = `${newY}px`;
@@ -217,8 +269,8 @@ export default function FolderScreen() {
   const handleBoardDoubleClick = (e) => {
     if (e.target !== boardRef.current || isCreatingMenu || creationType) return;
     const rect = boardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left - panOffsetRef.current.x;
-    const y = e.clientY - rect.top - panOffsetRef.current.y;
+    const x = (e.clientX - rect.left - panOffsetRef.current.x) / zoomRef.current;
+    const y = (e.clientY - rect.top - panOffsetRef.current.y) / zoomRef.current;
     
     setCreationPos({ x, y });
     
@@ -300,7 +352,7 @@ export default function FolderScreen() {
     const boardEl = boardRef.current;
     const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
     const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
-    setCreationPos({ x, y });
+    setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
     setCreationType(type);
     setCreationName('');
   };
@@ -317,8 +369,8 @@ export default function FolderScreen() {
     <div 
       style={{ 
         position: 'absolute',
-        left: creationPos.x + panOffset.x,
-        top: creationPos.y + panOffset.y,
+        left: creationPos.x * zoom + panOffset.x,
+        top: creationPos.y * zoom + panOffset.y,
         zIndex: 100
       }}
       className="p-4 bg-surface border border-accent rounded-lg shadow-2xl w-64 animate-in zoom-in-95 duration-100"
@@ -389,6 +441,8 @@ export default function FolderScreen() {
     </div>
   );
 
+  const zoomPercent = Math.round(zoom * 100);
+
   return (
     <div 
       ref={boardRef}
@@ -419,7 +473,7 @@ export default function FolderScreen() {
               {currentFolderId === null ? 'Workspace board' : `${currentFolder.name} board`}
             </h1>
             <p className="text-[9px] text-text-muted uppercase font-semibold">
-              Double-click board or press 'N' to create · Drag background to pan
+              Scroll to Zoom ({zoomPercent}%) · Double-click board or press 'N' to create
             </p>
           </div>
         </div>
@@ -455,7 +509,8 @@ export default function FolderScreen() {
       <div 
         ref={contentRef}
         style={{
-          transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+          transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
+          transformOrigin: '0 0',
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none'
