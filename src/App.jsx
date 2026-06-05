@@ -7,6 +7,7 @@ import FolderScreen from './screens/FolderScreen';
 import NoteScreen from './screens/NoteScreen';
 import CanvasView from './canvas/CanvasView';
 import SearchPalette from './components/SearchPalette';
+import ErrorBoundary from './components/ErrorBoundary';
 
 export default function App() {
   const { isAuthenticated, loadData, currentScreen, isLoading, goBack, navigateToWorkspaces } = useStore();
@@ -100,7 +101,9 @@ export default function App() {
       </main>
 
       {/* Global database search palette */}
-      <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      <ErrorBoundary>
+        <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+      </ErrorBoundary>
     </div>
   );
 }

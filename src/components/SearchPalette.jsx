@@ -101,11 +101,15 @@ export default function SearchPalette({ isOpen, onClose }) {
     }
   };
 
-  // Keep selected item visible in scroll container
+  // Keep selected item visible in scroll container safely
   useEffect(() => {
     const selectedEl = listRef.current?.children[selectedIndex];
-    if (selectedEl) {
-      selectedEl.scrollIntoView({ block: 'nearest' });
+    if (selectedEl && typeof selectedEl.scrollIntoView === 'function') {
+      try {
+        selectedEl.scrollIntoView({ block: 'nearest' });
+      } catch (err) {
+        console.warn('scrollIntoView failed:', err);
+      }
     }
   }, [selectedIndex]);
 
