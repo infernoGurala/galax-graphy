@@ -20,13 +20,13 @@ export default function App() {
     }
   }, [isAuthenticated, loadData]);
 
-  // Bind global keyboard shortcuts (Alt+Space = Home, Esc = Back, Ctrl+Space = Search)
+  // Bind global keyboard shortcuts (Ctrl+Space = Home, Esc = Back, Alt+Space = Search)
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isAuthenticated) return;
 
-      // Alt + Space (Home)
-      if (e.altKey && e.code === 'Space') {
+      // Ctrl + Space (Home)
+      if (e.ctrlKey && (e.key === ' ' || e.code === 'Space')) {
         e.preventDefault();
         navigateToWorkspaces();
         return;
@@ -49,8 +49,8 @@ export default function App() {
         }
       }
 
-      // Ctrl + Space (Search Database)
-      if (e.ctrlKey && (e.key === ' ' || e.code === 'Space')) {
+      // Alt + Space (Search Database)
+      if (e.altKey && (e.key === ' ' || e.code === 'Space')) {
         e.preventDefault();
         setSearchOpen(prev => !prev);
       }
