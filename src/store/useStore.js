@@ -635,5 +635,27 @@ export const useStore = create((set, get) => ({
         navigateToWorkspaces();
       }
     }
+  },
+
+  updateItemPosition: async (contextId, itemId, x, y) => {
+    const currentPluginData = get().pluginData;
+    const existingRecord = currentPluginData.find(
+      p => p.plugin_id === 'spatial-layout' && p.namespace === 'positions' && p.ref_id === contextId
+    );
+
+    const currentPositions = existingRecord?.data?.positions || {};
+    const updatedPositions = {
+      ...currentPositions,
+      [itemId]: { x, y }
+    };
+
+    await get().savePluginData('spatial-layout', 'positions', contextId, { positions: updatedPositions });
+  },
+
+  getItemPosition: (contextId, itemId) => {
+    const data = get().getPluginData('spatial-layout', itemId, 'positions'); // refId is itemId in generic get
+    // Wait, let's look at getPluginData: getPluginData(pluginId, refId, namespace)
+    const record = get().getPluginData('spatial-layout', contextId, 'positions');
+    return record?.positions?.[itemId] || null;
   }
 }));
