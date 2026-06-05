@@ -61,9 +61,9 @@ export default function App() {
         );
 
         if (!isFormInput) {
+          e.preventDefault(); // Prevent default browser scrolling/clicking actions on Space
           const currentTime = Date.now();
-          if (currentTime - lastSpaceTimeRef.current < 250) {
-            e.preventDefault();
+          if (currentTime - lastSpaceTimeRef.current < 400) {
             setSearchOpen(prev => !prev);
           }
           lastSpaceTimeRef.current = currentTime;
