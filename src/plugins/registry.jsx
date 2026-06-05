@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Image, Plus, Trash2, Move } from 'lucide-react';
 
 class PluginRegistry {
   constructor() {
@@ -71,7 +70,6 @@ const PureRefLite = ({ refId }) => {
     const img = images.find(i => i.id === imgId);
     if (img && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      // Calculate cursor position relative to the image x, y coordinates
       const clickX = e.clientX - rect.left - img.x;
       const clickY = e.clientY - rect.top - img.y;
       setDragOffset({ x: clickX, y: clickY });
@@ -111,23 +109,22 @@ const PureRefLite = ({ refId }) => {
     >
       {/* Header bar with Input */}
       <div className="flex items-center gap-2 mb-4 border-b border-border pb-3">
-        <div className="flex items-center gap-1.5 text-text text-xs font-semibold mr-4">
-          <Image className="w-4 h-4 text-accent" />
-          Mood Board (PureRef)
+        <div className="text-text text-xs font-bold uppercase tracking-wider mr-4">
+          Mood Board
         </div>
         <form onSubmit={handleAddImage} className="flex-1 flex gap-2">
           <input
             type="url"
-            placeholder="Paste image URL here..."
+            placeholder="Paste reference image URL..."
             value={newUrl}
             onChange={(e) => setNewUrl(e.target.value)}
-            className="flex-1 text-xs bg-surface border border-border rounded-lg px-3 py-1.5 text-text outline-none focus:border-accent"
+            className="flex-1 text-xs bg-surface border border-border rounded px-3 py-1.5 text-text outline-none focus:border-accent"
           />
           <button
             type="submit"
-            className="py-1.5 px-3 bg-accent hover:bg-accent-hover text-white text-xs font-semibold rounded-lg flex items-center gap-1 cursor-pointer"
+            className="py-1.5 px-3 bg-accent hover:bg-accent-hover text-white text-xs font-bold uppercase tracking-wider rounded cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5" /> Add
+            Add
           </button>
         </form>
       </div>
@@ -138,10 +135,9 @@ const PureRefLite = ({ refId }) => {
         className="flex-1 bg-surface rounded-lg relative overflow-hidden border border-border"
       >
         {images.length === 0 ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted text-[11px] gap-1 p-6 text-center">
-            <Image className="w-6 h-6 stroke-1 mb-1" />
-            <span>PureRef-style board canvas</span>
-            <span>Paste URLs above to pin reference images and drag them around</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-text-muted text-[10px] uppercase font-bold tracking-wider gap-1.5 p-6 text-center">
+            <span>Reference Mood Board</span>
+            <span className="normal-case font-normal text-text-muted/70">Paste image URLs above and drag them freely on the board</span>
           </div>
         ) : (
           images.map((img) => (
@@ -164,18 +160,18 @@ const PureRefLite = ({ refId }) => {
                 alt="Ref image"
                 className="w-full h-auto object-contain pointer-events-none rounded select-none min-h-[50px] bg-surface"
                 onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120'; // Placeholder on error
+                  e.target.src = 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=120';
                 }}
               />
               
-              {/* Drag handles & delete */}
-              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center bg-bg/85 border border-border rounded p-0.5 transition-opacity duration-150">
+              {/* Delete button (Text overlay) */}
+              <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 flex items-center bg-bg/90 border border-border rounded px-1.5 py-0.5 transition-opacity duration-150">
                 <button
                   onClick={(e) => handleDeleteImage(e, img.id)}
-                  className="p-0.5 text-text-muted hover:text-red-500 rounded transition-colors"
+                  className="text-[9px] font-bold uppercase tracking-wider text-text-muted hover:text-red-500 transition-colors"
                   title="Remove reference"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  Remove
                 </button>
               </div>
             </div>
@@ -190,7 +186,7 @@ const PureRefLite = ({ refId }) => {
 pluginRegistry.register({
   id: 'pureref-lite',
   name: 'Mood Board (PureRef)',
-  icon: '🖼️',
+  icon: '',
   panelType: 'embedded-block',
   storageNamespace: 'pureref_data',
   render: (props) => <PureRefLite {...props} />

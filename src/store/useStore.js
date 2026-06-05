@@ -204,7 +204,7 @@ export const useStore = create((set, get) => ({
   },
 
   // --- Workspace Actions ---
-  createWorkspace: async (name, icon = '📁') => {
+  createWorkspace: async (name, icon = '') => {
     const newWorkspace = {
       id: generateUUID(),
       name,
@@ -288,7 +288,7 @@ export const useStore = create((set, get) => ({
   },
 
   // --- Folder Actions ---
-  createFolder: async (workspaceId, name, icon = '📁') => {
+  createFolder: async (workspaceId, name, icon = '') => {
     const newFolder = {
       id: generateUUID(),
       workspace_id: workspaceId,

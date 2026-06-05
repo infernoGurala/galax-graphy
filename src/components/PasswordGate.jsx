@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useStore } from '../store/useStore';
-import { Lock } from 'lucide-react';
 
 export default function PasswordGate() {
   const [password, setPassword] = useState('');
@@ -21,11 +20,7 @@ export default function PasswordGate() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-bg px-4 select-none">
       <div className="w-full max-w-sm p-8 bg-surface border border-border rounded-xl shadow-2xl flex flex-col items-center transition-all duration-300">
-        <div className="p-4 bg-bg border border-border rounded-full mb-6">
-          <Lock className="w-6 h-6 text-accent" />
-        </div>
-        
-        <h2 className="text-xl font-semibold text-text mb-2 tracking-wide font-sans">
+        <h2 className="text-xl font-bold text-text mb-2 tracking-wide font-sans">
           Workspace Gate
         </h2>
         <p className="text-xs text-text-muted text-center mb-8 font-sans">

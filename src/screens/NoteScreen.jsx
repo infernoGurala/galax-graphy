@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../store/useStore';
 import NovelEditor from '../editor/NovelEditor';
-import { ArrowLeft } from 'lucide-react';
 
 export default function NoteScreen() {
   const { currentNoteId, notes, renameNote, navigateToFolder } = useStore();
@@ -17,7 +16,7 @@ export default function NoteScreen() {
 
   if (!note) {
     return (
-      <div className="max-w-xl mx-auto py-12 text-center text-text-muted font-sans">
+      <div className="max-w-xl mx-auto py-12 text-center text-text-muted font-sans uppercase text-xs">
         Note not found.
       </div>
     );
@@ -31,15 +30,15 @@ export default function NoteScreen() {
 
   return (
     <div className="w-full min-h-screen bg-bg">
-      <div className="max-w-[720px] mx-auto px-6 py-8">
+      <div className="max-w-[720px] mx-auto px-6 py-12">
         
         {/* Navigation Action */}
-        <div className="mb-8">
+        <div className="mb-8 font-sans">
           <button
             onClick={() => navigateToFolder(note.folder_id)}
-            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text transition-colors duration-150 cursor-pointer"
+            className="text-xs text-text-muted hover:text-text font-bold uppercase tracking-wider transition-colors duration-150 cursor-pointer"
           >
-            <ArrowLeft className="w-4 h-4" /> Back to Folder
+            &larr; Back to Folder
           </button>
         </div>
 
@@ -49,7 +48,7 @@ export default function NoteScreen() {
             type="text"
             value={title}
             onChange={handleTitleChange}
-            placeholder="Untitled"
+            placeholder="Untitled Note"
             className="w-full bg-transparent border-none text-3xl sm:text-4xl font-bold text-text outline-none placeholder:text-text-muted font-sans py-2"
           />
         </div>

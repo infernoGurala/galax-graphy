@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
 import { useStore } from '../store/useStore';
 import { Excalidraw } from '@excalidraw/excalidraw';
-import { Maximize2, Minimize2, Trash, Check } from 'lucide-react';
 
 export default function CanvasNodeView({ node, deleteNode }) {
   const canvasId = node.attrs.id;
@@ -14,17 +13,14 @@ export default function CanvasNodeView({ node, deleteNode }) {
   const [isReady, setIsReady] = useState(false);
   const saveTimeoutRef = useRef(null);
 
-  // Initialize canvas with saved elements or empty array
   const initialElements = canvasRecord?.data?.elements || [];
   const initialAppState = canvasRecord?.data?.appState || {};
 
   useEffect(() => {
-    // Small delay to ensure container dimensions are computed before Excalidraw renders
     const timer = setTimeout(() => setIsReady(true), 150);
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle drawing updates with debouncing to prevent lags
   const handleExcalidrawChange = (elements, appState) => {
     if (!canvasId) return;
 
@@ -33,7 +29,6 @@ export default function CanvasNodeView({ node, deleteNode }) {
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      // Filter out deleted elements or keep all
       updateCanvasData(canvasId, {
         elements: elements.map(el => ({
           id: el.id,
@@ -74,7 +69,7 @@ export default function CanvasNodeView({ node, deleteNode }) {
           viewBackgroundColor: appState.viewBackgroundColor,
         }
       });
-    }, 1000); // 1s save debounce
+    }, 1000);
   };
 
   useEffect(() => {
@@ -87,15 +82,11 @@ export default function CanvasNodeView({ node, deleteNode }) {
 
   if (!canvasRecord) {
     return (
-      <NodeViewWrapper className="my-6 p-4 border border-dashed border-red-500 rounded-lg text-center text-xs text-red-500 font-sans">
+      <NodeViewWrapper className="my-6 p-4 border border-dashed border-red-500 rounded-lg text-center text-xs text-red-500 font-sans uppercase">
         Canvas record not found: {canvasId}
       </NodeViewWrapper>
     );
   }
-
-  const excalidrawTheme = {
-    theme: 'dark',
-  };
 
   const renderEditor = () => (
     <Excalidraw
@@ -104,7 +95,7 @@ export default function CanvasNodeView({ node, deleteNode }) {
         appState: {
           ...initialAppState,
           theme: 'dark',
-          viewBackgroundColor: '#242328' // Matches --surface
+          viewBackgroundColor: '#242328'
         }
       }}
       onChange={handleExcalidrawChange}
@@ -114,7 +105,6 @@ export default function CanvasNodeView({ node, deleteNode }) {
 
   return (
     <NodeViewWrapper className="my-8 select-none">
-      {/* Inline Block Container */}
       <div 
         className={`bg-surface border border-border rounded-xl overflow-hidden shadow-md transition-all duration-300 ${
           isFullscreen 
@@ -123,40 +113,37 @@ export default function CanvasNodeView({ node, deleteNode }) {
         }`}
       >
         {/* Header Bar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg/50 backdrop-blur-sm">
+        <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-bg/50 backdrop-blur-sm font-sans">
           <div className="flex items-center space-x-2">
-            <span className="text-xs font-semibold text-text tracking-wide font-sans">
+            <span className="text-xs font-bold text-text tracking-wide">
               {isFullscreen ? `Full Screen: ${canvasRecord.title}` : canvasRecord.title}
             </span>
-            <span className="text-[10px] text-text-muted px-1.5 py-0.5 rounded bg-bg border border-border font-sans">
+            <span className="text-[9px] text-text-muted px-1.5 py-0.5 rounded bg-bg border border-border uppercase font-semibold">
               Canvas
             </span>
           </div>
 
-          <div className="flex items-center space-x-1.5">
+          <div className="flex items-center space-x-3 text-[10px] font-bold uppercase tracking-wider">
             {isFullscreen ? (
               <button
                 onClick={() => setIsFullscreen(false)}
-                className="p-1 hover:bg-surface border border-border text-text-muted hover:text-text rounded-md transition-colors cursor-pointer"
-                title="Exit Fullscreen"
+                className="text-text-muted hover:text-text cursor-pointer hover:underline"
               >
-                <Minimize2 className="w-3.5 h-3.5" />
+                Inline View
               </button>
             ) : (
               <>
                 <button
                   onClick={() => setIsFullscreen(true)}
-                  className="p-1 hover:bg-bg border border-transparent hover:border-border text-text-muted hover:text-text rounded-md transition-colors cursor-pointer"
-                  title="Expand to Fullscreen"
+                  className="text-text-muted hover:text-text cursor-pointer hover:underline"
                 >
-                  <Maximize2 className="w-3.5 h-3.5" />
+                  Fullscreen
                 </button>
                 <button
                   onClick={deleteNode}
-                  className="p-1 hover:bg-bg border border-transparent hover:border-border text-text-muted hover:text-red-500 rounded-md transition-colors cursor-pointer"
-                  title="Delete Drawing Block"
+                  className="text-text-muted hover:text-red-500 cursor-pointer hover:underline"
                 >
-                  <Trash className="w-3.5 h-3.5" />
+                  Delete
                 </button>
               </>
             )}
@@ -168,7 +155,7 @@ export default function CanvasNodeView({ node, deleteNode }) {
           {isReady ? (
             renderEditor()
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-xs text-text-muted font-sans">
+            <div className="absolute inset-0 flex items-center justify-center text-xs text-text-muted font-semibold uppercase tracking-wider font-sans">
               Preparing drawing canvas...
             </div>
           )}

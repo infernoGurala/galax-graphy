@@ -1,6 +1,5 @@
 import React from 'react';
 import { useStore } from '../store/useStore';
-import { ChevronRight, Home } from 'lucide-react';
 
 export default function Breadcrumb() {
   const {
@@ -26,19 +25,14 @@ export default function Breadcrumb() {
 
   // Home segment
   crumbs.push({
-    label: <Home className="w-4 h-4 text-text-muted hover:text-text transition-colors duration-150" />,
+    label: <span className="text-text-muted hover:text-text transition-colors duration-150 font-medium">Home</span>,
     onClick: navigateToWorkspaces
   });
 
   // Workspace segment
   if (workspace) {
     crumbs.push({
-      label: (
-        <span className="flex items-center gap-1 hover:text-text transition-colors duration-150">
-          <span>{workspace.icon || '📁'}</span>
-          <span>{workspace.name}</span>
-        </span>
-      ),
+      label: <span className="hover:text-text transition-colors duration-150">{workspace.name}</span>,
       onClick: () => navigateToWorkspace(workspace.id)
     });
   }
@@ -46,12 +40,7 @@ export default function Breadcrumb() {
   // Folder segment
   if (folder) {
     crumbs.push({
-      label: (
-        <span className="flex items-center gap-1 hover:text-text transition-colors duration-150">
-          <span>{folder.icon || '📁'}</span>
-          <span>{folder.name}</span>
-        </span>
-      ),
+      label: <span className="hover:text-text transition-colors duration-150">{folder.name}</span>,
       onClick: () => navigateToFolder(folder.id)
     });
   }
@@ -73,10 +62,10 @@ export default function Breadcrumb() {
   }
 
   return (
-    <nav className="flex items-center space-x-1.5 text-sm text-text-muted select-none font-sans font-normal py-1">
+    <nav className="flex items-center space-x-2.5 text-xs text-text-muted select-none font-sans font-normal py-1">
       {crumbs.map((crumb, idx) => (
         <React.Fragment key={idx}>
-          {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-border" />}
+          {idx > 0 && <span className="text-border">/</span>}
           {crumb.onClick ? (
             <button
               onClick={crumb.onClick}

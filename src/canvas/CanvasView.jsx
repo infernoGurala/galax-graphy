@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { Excalidraw } from '@excalidraw/excalidraw';
-import { ArrowLeft } from 'lucide-react';
 
 export default function CanvasView() {
   const { currentCanvasId, canvases, updateCanvasData, renameCanvas, navigateToWorkspace } = useStore();
@@ -18,14 +17,13 @@ export default function CanvasView() {
   }, [currentCanvasId, canvas]);
 
   useEffect(() => {
-    // Brief delay to prevent canvas width/height rendering bugs
     const timer = setTimeout(() => setIsReady(true), 150);
     return () => clearTimeout(timer);
   }, []);
 
   if (!canvas) {
     return (
-      <div className="max-w-xl mx-auto py-12 text-center text-text-muted font-sans">
+      <div className="max-w-xl mx-auto py-12 text-center text-text-muted font-sans uppercase text-xs">
         Canvas board not found.
       </div>
     );
@@ -97,9 +95,9 @@ export default function CanvasView() {
       <div className="flex items-center gap-4 px-6 py-3 border-b border-border bg-surface/30">
         <button
           onClick={() => navigateToWorkspace(canvas.workspace_id)}
-          className="p-1.5 hover:bg-surface border border-border rounded-lg text-text-muted hover:text-text transition-colors cursor-pointer"
+          className="text-xs text-text-muted hover:text-text font-bold uppercase tracking-wider border border-border hover:bg-surface py-1.5 px-3 rounded transition-colors cursor-pointer"
         >
-          <ArrowLeft className="w-4 h-4" />
+          &larr; Back
         </button>
 
         <input
@@ -110,8 +108,8 @@ export default function CanvasView() {
           className="bg-transparent border-none text-base font-bold text-text outline-none placeholder:text-text-muted flex-1 py-1"
         />
         
-        <span className="text-[10px] text-text-muted px-2 py-0.5 rounded bg-surface border border-border font-sans">
-          Standalone Canvas
+        <span className="text-[10px] text-text-muted px-2 py-0.5 rounded bg-surface border border-border uppercase font-semibold tracking-wider">
+          Canvas
         </span>
       </div>
 
@@ -131,7 +129,7 @@ export default function CanvasView() {
             theme="dark"
           />
         ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-text-muted">
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-text-muted uppercase tracking-wider font-semibold">
             Initialising drawings board...
           </div>
         )}

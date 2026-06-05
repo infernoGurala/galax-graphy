@@ -5,7 +5,6 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import { useStore } from '../store/useStore';
 import { ExcalidrawNode, PluginBlockNode, SlashCommand, getSuggestionItems } from './CustomExtensions';
-import { Heading1, Heading2, List, Code, HelpCircle, Paintbrush, Minus, Image } from 'lucide-react';
 
 export default function NovelEditor({ noteId }) {
   const notes = useStore(state => state.notes);
@@ -89,10 +88,8 @@ export default function NovelEditor({ noteId }) {
 
     const handleInsertPlugin = async (e) => {
       const { editor: evtEditor, range, pluginId } = e.detail;
-      // Generate a new reference ID for plugin storage namespace
       const pluginRefId = 'plug-' + Math.random().toString(36).substring(2, 12);
       
-      // Initialize empty data for plugin
       await savePluginData(pluginId, 'pureref_data', pluginRefId, { images: [] });
 
       evtEditor
@@ -133,7 +130,6 @@ export default function NovelEditor({ noteId }) {
       
       try {
         const coords = editor.view.coordsAtPos(pos);
-        const scrollEl = document.documentElement;
         
         setMenuState({
           show: true,
@@ -198,19 +194,6 @@ export default function NovelEditor({ noteId }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuState.show]);
 
-  const getIcon = (title) => {
-    switch (title) {
-      case 'Heading 1': return <Heading1 className="w-4 h-4 text-text" />;
-      case 'Heading 2': return <Heading2 className="w-4 h-4 text-text" />;
-      case 'Bullet List': return <List className="w-4 h-4 text-text" />;
-      case 'Code Block': return <Code className="w-4 h-4 text-text" />;
-      case 'Horizontal Rule': return <Minus className="w-4 h-4 text-text" />;
-      case 'Excalidraw Canvas': return <Paintbrush className="w-4 h-4 text-accent" />;
-      case 'Mood Board (PureRef)': return <Image className="w-4 h-4 text-accent" />;
-      default: return <HelpCircle className="w-4 h-4 text-text" />;
-    }
-  };
-
   return (
     <div className="w-full relative py-6">
       <EditorContent editor={editor} className="font-sans text-text leading-relaxed select-text" />
@@ -224,9 +207,9 @@ export default function NovelEditor({ noteId }) {
             left: `${menuState.x}px`,
             zIndex: 1000,
           }}
-          className="w-72 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden py-1.5 animate-in fade-in slide-in-from-top-1 duration-150"
+          className="w-72 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-1 duration-150"
         >
-          <div className="px-3 py-1 text-[10px] text-text-muted font-semibold tracking-wider uppercase font-sans">
+          <div className="px-3.5 py-1 text-[10px] text-text-muted font-bold tracking-wider uppercase font-sans">
             Blocks
           </div>
           {menuItems.map((item, index) => {
@@ -235,17 +218,12 @@ export default function NovelEditor({ noteId }) {
               <button
                 key={item.title}
                 onClick={() => executeMenuItem(item)}
-                className={`w-full flex items-start gap-3 px-3 py-2 text-left cursor-pointer transition-colors duration-150 ${
+                className={`w-full flex flex-col px-4 py-2 text-left cursor-pointer transition-colors duration-150 ${
                   isSelected ? 'bg-bg' : ''
                 }`}
               >
-                <div className="p-1.5 bg-bg border border-border rounded-lg mt-0.5">
-                  {getIcon(item.title)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold text-text font-sans">{item.title}</div>
-                  <div className="text-[10px] text-text-muted font-sans line-clamp-1">{item.description}</div>
-                </div>
+                <div className="text-xs font-bold text-text font-sans tracking-wide">{item.title}</div>
+                <div className="text-[10px] text-text-muted font-sans mt-0.5 line-clamp-1">{item.description}</div>
               </button>
             );
           })}
