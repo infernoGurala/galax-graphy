@@ -25,22 +25,28 @@ export default function FolderScreen() {
   } = useStore();
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-
-  const [draggedId, setDraggedId] = useState(null);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-
-  const [isCreatingMenu, setIsCreatingMenu] = useState(false); // For folders vs canvases selection
-  const [creationType, setCreationType] = useState(''); // 'folder', 'canvas', 'note'
+  const [isCreatingMenu, setIsCreatingMenu] = useState(false);
+  const [creationType, setCreationType] = useState('');
   const [creationName, setCreationName] = useState('');
-  const [creationPos, setCreationPos] = useState({ x: 0, y: 0 });
+  const [creationPos, setCreationPos] = useState({ x: 150, y: 150 });
 
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
-  const [editingType, setEditingType] = useState(''); // 'folder', 'canvas', 'note'
+  const [editingType, setEditingType] = useState('');
 
   const boardRef = useRef(null);
+  const contentRef = useRef(null);
+
+  // Dragging & Panning Refs (avoiding React state re-renders for fluid 60 FPS motion)
+  const isPanningRef = useRef(false);
+  const panStartRef = useRef({ x: 0, y: 0 });
+  const panOffsetRef = useRef({ x: 0, y: 0 });
+
+  const draggedIdRef = useRef(null);
+  const draggedElementRef = useRef(null);
+  const dragStartMouseRef = useRef({ x: 0, y: 0 });
+  const dragStartPosRef = useRef({ x: 0, y: 0 });
+  const hasMovedRef = useRef(false);
 
   // Filter items
   const workspaceFolders = folders.filter(f => f.workspace_id === currentWorkspaceId);
@@ -55,100 +61,175 @@ export default function FolderScreen() {
   // Load layout positions
   const savedLayout = getPluginData('spatial-layout', activeContextId, 'positions') || {};
   const itemPositions = savedLayout.positions || {};
-
-  // Dragging states
-  const [activePositions, setActivePositions] = useState({});
+  const positionsRef = useRef(itemPositions);
 
   useEffect(() => {
-    setActivePositions(itemPositions);
+    positionsRef.current = itemPositions;
+  }, [JSON.stringify(itemPositions)]);
+
+  useEffect(() => {
     // Reset panning on context change
     setPanOffset({ x: 0, y: 0 });
-  }, [activeContextId, JSON.stringify(itemPositions)]);
+    panOffsetRef.current = { x: 0, y: 0 };
+    if (contentRef.current) {
+      contentRef.current.style.transform = `translate(0px, 0px)`;
+    }
+  }, [activeContextId]);
+
+  // Keyboard shortcut 'n' to trigger creation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (isCreatingMenu || creationType || editingId) return;
+      if (e.key === 'n' || e.key === 'N') {
+        const activeEl = document.activeElement;
+        const isFormInput = activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.isContentEditable
+        );
+        if (!isFormInput) {
+          e.preventDefault();
+          const boardEl = boardRef.current;
+          const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
+          const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
+          setCreationPos({ x, y });
+          if (currentFolderId === null) {
+            setIsCreatingMenu(true);
+          } else {
+            setCreationType('note');
+            setCreationName('');
+          }
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isCreatingMenu, creationType, editingId, currentFolderId]);
 
   // Get position of items
-  const getItemPos = (itemId, index, totalItems = 1) => {
-    if (activePositions[itemId]) {
-      return activePositions[itemId];
+  const getItemPos = (itemId, index) => {
+    if (positionsRef.current[itemId]) {
+      return positionsRef.current[itemId];
     }
-    // Calculate default grid position
     const cols = 2;
     const col = index % cols;
     const row = Math.floor(index / cols);
     return { x: 100 + col * 340, y: 150 + row * 180 };
   };
 
-  // Background pointer handlers for Panning
+  // Background Pointer Down (Panning)
   const handleBoardPointerDown = (e) => {
     if (e.target !== boardRef.current) return;
-    e.preventDefault();
-    setIsPanning(true);
-    setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    isPanningRef.current = true;
+    boardRef.current.setPointerCapture(e.pointerId);
+    panStartRef.current = {
+      x: e.clientX - panOffsetRef.current.x,
+      y: e.clientY - panOffsetRef.current.y
+    };
   };
 
-  // Card pointer handlers for Dragging
-  const handleCardPointerDown = (e, itemId, index) => {
+  // Card Pointer Down (Dragging)
+  const handleCardPointerDown = (e, itemId, index, element) => {
     e.preventDefault();
-    e.stopPropagation();
-    setDraggedId(itemId);
-    
+    draggedIdRef.current = itemId;
+    draggedElementRef.current = element;
+    hasMovedRef.current = false;
+
+    element.setPointerCapture(e.pointerId);
+
     const pos = getItemPos(itemId, index);
-    setDragOffset({
-      x: e.clientX - pos.x,
-      y: e.clientY - pos.y
-    });
+    dragStartPosRef.current = pos;
+    dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
   };
 
   // Pointer Move
   const handlePointerMove = (e) => {
-    if (isPanning) {
-      setPanOffset({
-        x: e.clientX - panStart.x,
-        y: e.clientY - panStart.y
-      });
-    } else if (draggedId) {
-      const newX = Math.max(20, e.clientX - dragOffset.x);
-      const newY = Math.max(20, e.clientY - dragOffset.y);
+    if (isPanningRef.current) {
+      const dx = e.clientX - panStartRef.current.x;
+      const dy = e.clientY - panStartRef.current.y;
+      panOffsetRef.current = { x: dx, y: dy };
       
-      setActivePositions(prev => ({
-        ...prev,
-        [draggedId]: { x: newX, y: newY }
-      }));
+      if (contentRef.current) {
+        contentRef.current.style.transform = `translate(${dx}px, ${dy}px)`;
+      }
+    } else if (draggedIdRef.current && draggedElementRef.current) {
+      const dx = e.clientX - dragStartMouseRef.current.x;
+      const dy = e.clientY - dragStartMouseRef.current.y;
+
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        hasMovedRef.current = true;
+      }
+
+      if (hasMovedRef.current) {
+        const newX = Math.max(10, dragStartPosRef.current.x + dx);
+        const newY = Math.max(10, dragStartPosRef.current.y + dy);
+        
+        draggedElementRef.current.style.left = `${newX}px`;
+        draggedElementRef.current.style.top = `${newY}px`;
+      }
     }
   };
 
   // Pointer Up
   const handlePointerUp = async (e) => {
-    if (isPanning) {
-      setIsPanning(false);
-    } else if (draggedId) {
-      const pos = activePositions[draggedId];
-      if (pos) {
-        await updateItemPosition(activeContextId, draggedId, pos.x, pos.y);
+    if (isPanningRef.current) {
+      isPanningRef.current = false;
+      if (boardRef.current) {
+        boardRef.current.releasePointerCapture(e.pointerId);
       }
-      setDraggedId(null);
+      setPanOffset(panOffsetRef.current);
+    } else if (draggedIdRef.current && draggedElementRef.current) {
+      const id = draggedIdRef.current;
+      const element = draggedElementRef.current;
+      
+      draggedIdRef.current = null;
+      draggedElementRef.current = null;
+      element.releasePointerCapture(e.pointerId);
+
+      if (hasMovedRef.current) {
+        const finalX = parseInt(element.style.left, 10);
+        const finalY = parseInt(element.style.top, 10);
+        
+        positionsRef.current = {
+          ...positionsRef.current,
+          [id]: { x: finalX, y: finalY }
+        };
+        await updateItemPosition(activeContextId, id, finalX, finalY);
+      }
     }
   };
 
-  // Double Click Board to Create Item
+  const handleCardClick = (e, item) => {
+    if (hasMovedRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    if (item.type === 'folder') {
+      navigateToFolder(item.id);
+    } else if (item.type === 'canvas') {
+      navigateToCanvas(item.id);
+    } else if (item.type === 'note') {
+      navigateToNote(item.id);
+    }
+  };
+
   const handleBoardDoubleClick = (e) => {
     if (e.target !== boardRef.current || isCreatingMenu || creationType) return;
     const rect = boardRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left - panOffset.x;
-    const y = e.clientY - rect.top - panOffset.y;
+    const x = e.clientX - rect.left - panOffsetRef.current.x;
+    const y = e.clientY - rect.top - panOffsetRef.current.y;
     
     setCreationPos({ x, y });
     
     if (currentFolderId === null) {
-      // Prompt user to select Folder vs Canvas
       setIsCreatingMenu(true);
     } else {
-      // In folder: always note creation
       setCreationType('note');
       setCreationName('');
     }
   };
 
-  // Create Submission Handlers
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     if (!creationName.trim()) {
@@ -215,6 +296,23 @@ export default function FolderScreen() {
     }
   };
 
+  const handleCreateHUD = (type) => {
+    const boardEl = boardRef.current;
+    const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
+    const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
+    setCreationPos({ x, y });
+    setCreationType(type);
+    setCreationName('');
+  };
+
+  // Combine items for workspace level
+  const workspaceItems = [
+    ...workspaceFolders.map(f => ({ ...f, type: 'folder' })),
+    ...workspaceCanvases.map(c => ({ ...c, type: 'canvas', name: c.title }))
+  ];
+
+  const currentItems = currentFolderId === null ? workspaceItems : folderNotes.map(n => ({ ...n, type: 'note', name: n.title }));
+
   const renderCreationNode = () => (
     <div 
       style={{ 
@@ -265,7 +363,7 @@ export default function FolderScreen() {
             placeholder="Name..."
             value={creationName}
             onChange={(e) => setCreationName(e.target.value)}
-            className="bg-bg border border-border text-text text-xs rounded p-2 outline-none focus:border-accent w-full"
+            className="bg-bg border border-border text-text text-xs rounded p-2 outline-none focus:border-accent w-full font-sans"
             autoFocus
             onKeyDown={(e) => {
               if (e.key === 'Escape') setCreationType('');
@@ -291,147 +389,164 @@ export default function FolderScreen() {
     </div>
   );
 
-  // Combine items for workspace level
-  const workspaceItems = [
-    ...workspaceFolders.map(f => ({ ...f, type: 'folder' })),
-    ...workspaceCanvases.map(c => ({ ...c, type: 'canvas', name: c.title }))
-  ];
-
-  const currentItems = currentFolderId === null ? workspaceItems : folderNotes.map(n => ({ ...n, type: 'note', name: n.title }));
-
   return (
     <div 
       ref={boardRef}
       onPointerDown={handleBoardPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
-      onPointerLeave={handlePointerUp}
       onDoubleClick={handleBoardDoubleClick}
       style={{ 
         backgroundImage: 'radial-gradient(#2E2D31 1.5px, transparent 1.5px)', 
         backgroundSize: '32px 32px',
-        cursor: isPanning ? 'grabbing' : draggedId ? 'grabbing' : 'grab'
+        touchAction: 'none'
       }}
-      className="w-full h-[calc(100vh-68px)] bg-bg relative overflow-hidden select-none font-sans"
+      className="w-full h-[calc(100vh-68px)] bg-bg relative overflow-hidden select-none font-sans cursor-grab active:cursor-grabbing"
     >
-      {/* HUD Info Banner */}
-      <div className="absolute top-4 left-6 bg-surface/80 border border-border px-3.5 py-2 rounded-lg backdrop-blur-md pointer-events-none z-10 flex items-center gap-4">
-        {currentFolderId !== null && (
-          <button
-            onClick={() => navigateToFolder(null)}
-            className="text-[10px] text-text-muted hover:text-text font-bold uppercase tracking-wider border border-border hover:bg-surface py-1 px-2.5 rounded transition-colors pointer-events-auto cursor-pointer"
-          >
-            &larr; Back
-          </button>
-        )}
-        <div className="flex flex-col gap-0.5">
-          <h1 className="text-[11px] font-bold uppercase tracking-wider text-text">
-            {currentFolderId === null ? 'Workspace board' : `${currentFolder.name} board`}
-          </h1>
-          <p className="text-[9px] text-text-muted uppercase font-semibold">
-            Double-click to create · Drag to arrange · Drag empty space to pan
-          </p>
+      {/* Top HUD Controls */}
+      <div className="absolute top-4 left-6 right-6 flex items-center justify-between pointer-events-none z-10 gap-4">
+        <div className="bg-surface/85 border border-border px-3.5 py-2 rounded-lg backdrop-blur-md flex items-center gap-4">
+          {currentFolderId !== null && (
+            <button
+              onClick={() => navigateToFolder(null)}
+              className="pointer-events-auto text-[10px] text-text-muted hover:text-text font-bold uppercase tracking-wider border border-border hover:bg-surface py-1 px-2.5 rounded transition-colors cursor-pointer"
+            >
+              &larr; Back
+            </button>
+          )}
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-[11px] font-bold uppercase tracking-wider text-text">
+              {currentFolderId === null ? 'Workspace board' : `${currentFolder.name} board`}
+            </h1>
+            <p className="text-[9px] text-text-muted uppercase font-semibold">
+              Double-click board or press 'N' to create · Drag background to pan
+            </p>
+          </div>
         </div>
+
+        <div className="flex gap-2 pointer-events-auto">
+          {currentFolderId === null ? (
+            <>
+              <button
+                onClick={() => handleCreateHUD('folder')}
+                className="py-2 px-3 bg-surface hover:bg-border border border-border text-text text-xs font-bold uppercase tracking-wider rounded shadow-md transition-all cursor-pointer"
+              >
+                New Folder
+              </button>
+              <button
+                onClick={() => handleCreateHUD('canvas')}
+                className="py-2 px-3 bg-accent hover:bg-accent-hover text-white text-xs font-bold uppercase tracking-wider rounded shadow-md transition-all cursor-pointer"
+              >
+                New Canvas
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={() => handleCreateHUD('note')}
+              className="py-2 px-3 bg-accent hover:bg-accent-hover text-white text-xs font-bold uppercase tracking-wider rounded shadow-md transition-all cursor-pointer"
+            >
+              New Note
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Spatial Board Content Container */}
+      <div 
+        ref={contentRef}
+        style={{
+          transform: `translate(${panOffset.x}px, ${panOffset.y}px)`,
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none'
+        }}
+      >
+        {/* Spatial Draggable Cards */}
+        {currentItems.map((item, index) => {
+          const isEditing = editingId === item.id && editingType === item.type;
+          const pos = getItemPos(item.id, index);
+
+          return (
+            <div
+              key={item.id}
+              style={{
+                position: 'absolute',
+                left: `${pos.x}px`,
+                top: `${pos.y}px`,
+                pointerEvents: 'auto'
+              }}
+              onPointerDown={(e) => {
+                const cardEl = e.currentTarget;
+                if (!isEditing) handleCardPointerDown(e, item.id, index, cardEl);
+              }}
+              onClick={(e) => handleCardClick(e, item)}
+              className="group w-72 p-5 bg-surface border border-border hover:border-accent/40 rounded-lg shadow-md hover:shadow-xl transition-all duration-150 flex flex-col justify-between h-36 cursor-pointer"
+            >
+              <div className="flex-1 min-w-0">
+                {isEditing ? (
+                  <div className="flex items-center gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="text"
+                      value={editingName}
+                      onChange={(e) => setEditingName(e.target.value)}
+                      className="bg-bg border border-border text-text text-xs rounded px-2 py-1 w-full outline-none"
+                      autoFocus
+                    />
+                    <button onClick={(e) => handleSaveRename(e, item.id)} className="px-2 py-1 bg-accent text-white text-[10px] font-bold rounded uppercase cursor-pointer">
+                      Save
+                    </button>
+                    <button onClick={handleCancelRename} className="px-2 py-1 border border-border text-text-muted text-[10px] rounded uppercase hover:bg-bg cursor-pointer">
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <h3 className="font-bold text-text text-base leading-snug truncate group-hover:text-accent transition-colors duration-100">
+                      {item.name || 'Untitled'}
+                    </h3>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border border-border ${
+                        item.type === 'canvas' ? 'text-accent border-accent/20 bg-accent/5' : 'text-text-muted bg-bg'
+                      }`}>
+                        {item.type}
+                      </span>
+                      <span className="text-[8px] text-text-muted uppercase tracking-wider font-semibold">
+                        {new Date(item.created_at || item.updated_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {!isEditing && (
+                <div className="opacity-0 group-hover:opacity-100 flex items-center gap-4 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider mt-4">
+                  <button
+                    onClick={(e) => handleStartRename(e, item.id, item.name, item.type)}
+                    className="text-text-muted hover:text-accent transition-colors cursor-pointer"
+                  >
+                    Rename
+                  </button>
+                  <button
+                    onClick={(e) => handleDelete(e, item.id, item.type)}
+                    className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Creation Node Overlay */}
       {(isCreatingMenu || creationType) && renderCreationNode()}
 
-      {/* Draggable Spatial Cards */}
-      {currentItems.map((item, index) => {
-        const isEditing = editingId === item.id && editingType === item.type;
-        const pos = getItemPos(item.id, index);
-
-        const handleCardClick = () => {
-          if (isEditing || draggedId !== null) return;
-          if (item.type === 'folder') {
-            navigateToFolder(item.id);
-          } else if (item.type === 'canvas') {
-            navigateToCanvas(item.id);
-          } else if (item.type === 'note') {
-            navigateToNote(item.id);
-          }
-        };
-
-        return (
-          <div
-            key={item.id}
-            style={{
-              position: 'absolute',
-              left: `${pos.x + panOffset.x}px`,
-              top: `${pos.y + panOffset.y}px`,
-              zIndex: draggedId === item.id ? 50 : 10
-            }}
-            onPointerDown={(e) => !isEditing && handleCardPointerDown(e, item.id, index)}
-            onClick={handleCardClick}
-            className={`group w-72 p-5 bg-surface border ${
-              draggedId === item.id ? 'border-accent shadow-2xl scale-[1.02]' : 'border-border hover:border-accent/40'
-            } rounded-lg transition-all duration-150 ease-out flex flex-col justify-between h-36`}
-          >
-            {/* Card Content */}
-            <div className="flex-1 min-w-0">
-              {isEditing ? (
-                <div className="flex items-center gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
-                  <input
-                    type="text"
-                    value={editingName}
-                    onChange={(e) => setEditingName(e.target.value)}
-                    className="bg-bg border border-border text-text text-xs rounded px-2 py-1 w-full outline-none"
-                    autoFocus
-                  />
-                  <button onClick={(e) => handleSaveRename(e, item.id)} className="px-2 py-1 bg-accent text-white text-[10px] font-bold rounded uppercase cursor-pointer">
-                    Save
-                  </button>
-                  <button onClick={handleCancelRename} className="px-2 py-1 border border-border text-text-muted text-[10px] rounded uppercase hover:bg-bg cursor-pointer">
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <h3 className="font-bold text-text text-base leading-snug truncate group-hover:text-accent transition-colors duration-100">
-                    {item.name || 'Untitled'}
-                  </h3>
-                  <div className="flex items-center gap-2 mt-1.5">
-                    {/* Brutalist Text Badge */}
-                    <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border border-border ${
-                      item.type === 'canvas' ? 'text-accent border-accent/20 bg-accent/5' : 'text-text-muted bg-bg'
-                    }`}>
-                      {item.type}
-                    </span>
-                    <span className="text-[8px] text-text-muted uppercase tracking-wider font-semibold">
-                      {new Date(item.created_at || item.updated_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Hover actions */}
-            {!isEditing && (
-              <div className="opacity-0 group-hover:opacity-100 flex items-center gap-4 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider mt-4">
-                <button
-                  onClick={(e) => handleStartRename(e, item.id, item.name, item.type)}
-                  className="text-text-muted hover:text-accent transition-colors cursor-pointer"
-                >
-                  Rename
-                </button>
-                <button
-                  onClick={(e) => handleDelete(e, item.id, item.type)}
-                  className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
-        );
-      })}
-
       {/* Empty State */}
       {currentItems.length === 0 && !isCreatingMenu && !creationType && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 pointer-events-none">
           <p className="text-xs text-text-muted uppercase tracking-wider max-w-sm leading-relaxed">
-            The board is clean. Double-click anywhere to create folders, drawings, or notes.
+            The board is clean. Double-click anywhere or click the buttons above to create folders, drawings, or notes.
           </p>
         </div>
       )}
