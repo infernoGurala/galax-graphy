@@ -610,5 +610,30 @@ export const useStore = create((set, get) => ({
   getPluginData: (pluginId, refId, namespace) => {
     const record = get().pluginData.find(p => p.plugin_id === pluginId && p.ref_id === refId && p.namespace === namespace);
     return record ? record.data : null;
+  },
+
+  goBack: () => {
+    const { currentScreen, currentFolderId, currentWorkspaceId, navigateToFolder, navigateToWorkspace, navigateToWorkspaces } = get();
+    if (currentScreen === 'canvas') {
+      if (currentWorkspaceId) {
+        navigateToWorkspace(currentWorkspaceId);
+      } else {
+        navigateToWorkspaces();
+      }
+    } else if (currentScreen === 'note') {
+      if (currentFolderId) {
+        navigateToFolder(currentFolderId);
+      } else if (currentWorkspaceId) {
+        navigateToWorkspace(currentWorkspaceId);
+      } else {
+        navigateToWorkspaces();
+      }
+    } else if (currentScreen === 'folders') {
+      if (currentFolderId !== null) {
+        navigateToFolder(null);
+      } else {
+        navigateToWorkspaces();
+      }
+    }
   }
 }));

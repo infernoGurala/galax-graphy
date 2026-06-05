@@ -8,7 +8,7 @@ import NoteScreen from './screens/NoteScreen';
 import CanvasView from './canvas/CanvasView';
 
 export default function App() {
-  const { isAuthenticated, loadData, currentScreen, isLoading } = useStore();
+  const { isAuthenticated, loadData, currentScreen, isLoading, goBack, navigateToWorkspaces } = useStore();
 
   // Load data on initial mount once authenticated
   useEffect(() => {
@@ -16,6 +16,40 @@ export default function App() {
       loadData();
     }
   }, [isAuthenticated, loadData]);
+
+  // Bind global keyboard shortcuts (Alt+Space = Home, Esc = Back)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (!isAuthenticated) return;
+
+      // Alt + Space (Home)
+      if (e.altKey && e.code === 'Space') {
+        e.preventDefault();
+        navigateToWorkspaces();
+        return;
+      }
+
+      // Escape (Back)
+      if (e.key === 'Escape') {
+        const activeEl = document.activeElement;
+        const isFormInput = activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          activeEl.isContentEditable ||
+          activeEl.classList.contains('ProseMirror')
+        );
+
+        if (!isFormInput) {
+          e.preventDefault();
+          goBack();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isAuthenticated, goBack, navigateToWorkspaces]);
 
   if (!isAuthenticated) {
     return <PasswordGate />;
