@@ -188,6 +188,7 @@ export default function FolderScreen() {
     hasMovedRef.current = false;
 
     element.setPointerCapture(e.pointerId);
+    element.classList.add('ring-2', 'ring-accent', 'shadow-[0_0_25px_rgba(2,132,199,0.35)]', 'z-50');
 
     const pos = getItemPos(itemId, index);
     dragStartPosRef.current = pos;
@@ -237,6 +238,7 @@ export default function FolderScreen() {
       draggedIdRef.current = null;
       draggedElementRef.current = null;
       element.releasePointerCapture(e.pointerId);
+      element.classList.remove('ring-2', 'ring-accent', 'shadow-[0_0_25px_rgba(2,132,199,0.35)]', 'z-50');
 
       if (hasMovedRef.current) {
         const finalX = parseInt(element.style.left, 10);
@@ -535,77 +537,72 @@ export default function FolderScreen() {
                 if (!isEditing) handleCardPointerDown(e, item.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, item)}
-              className={`group w-72 p-5 bg-surface/75 border-l-2 border-y border-r border-y-border border-r-border rounded-r-lg rounded-l-xs shadow-md hover:shadow-[0_0_20px_rgba(2,132,199,0.12)] transition-all duration-150 select-none flex flex-col justify-between h-36 cursor-pointer ${
-                item.type === 'canvas' 
-                  ? 'border-l-accent' 
-                  : item.type === 'folder'
-                  ? 'border-l-yellow-500'
-                  : 'border-l-text-muted'
-              }`}
+              className="group w-72 bg-surface/90 border border-border/80 hover:border-accent/40 rounded-lg shadow-md hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] hover:-translate-y-[2px] transition-[border-color,box-shadow,background-color,transform] duration-200 select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden"
             >
-              <div className="flex-1 min-w-0">
-                {isEditing ? (
-                  <div className="flex items-center gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
-                    <input
-                      type="text"
-                      value={editingName}
-                      onChange={(e) => setEditingName(e.target.value)}
-                      className="bg-bg border border-border text-text text-xs rounded px-2 py-1 w-full outline-none"
-                      autoFocus
-                    />
-                    <button onClick={(e) => handleSaveRename(e, item.id)} className="px-2 py-1 bg-accent text-white text-[10px] font-bold rounded uppercase cursor-pointer">
-                      Save
-                    </button>
-                    <button onClick={handleCancelRename} className="px-2 py-1 border border-border text-text-muted text-[10px] rounded uppercase hover:bg-bg cursor-pointer">
-                      Cancel
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-mono text-[9px] text-text-muted tracking-widest">
-                        {item.type.toUpperCase()} // {(index + 1).toString().padStart(2, '0')}
-                      </span>
-                      <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border ${
-                        item.type === 'canvas' 
-                          ? 'text-accent border-accent/20 bg-accent/5' 
-                          : item.type === 'folder'
-                          ? 'text-yellow-500 border-yellow-500/20 bg-yellow-500/5'
-                          : 'text-text-muted border-border bg-bg'
+              {/* Top Accent Line */}
+              <div className={`absolute top-0 left-0 right-0 h-[3px] transition-colors duration-200 ${
+                item.type === 'canvas' 
+                  ? 'bg-accent/40 group-hover:bg-accent' 
+                  : item.type === 'folder'
+                  ? 'bg-yellow-500/40 group-hover:bg-yellow-500'
+                  : 'bg-text-muted/40 group-hover:bg-text'
+              }`} />
+
+              <div className="p-5 pt-6 flex-1 flex flex-col justify-between h-full">
+                <div className="min-w-0">
+                  {isEditing ? (
+                    <div className="flex items-center gap-1.5 mt-1" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="text"
+                        value={editingName}
+                        onChange={(e) => setEditingName(e.target.value)}
+                        className="bg-bg border border-border text-text text-xs rounded px-2 py-1 w-full outline-none"
+                        autoFocus
+                      />
+                      <button onClick={(e) => handleSaveRename(e, item.id)} className="px-2 py-1 bg-accent text-white text-[10px] font-bold rounded uppercase cursor-pointer">
+                        Save
+                      </button>
+                      <button onClick={handleCancelRename} className="px-2 py-1 border border-border text-text-muted text-[10px] rounded uppercase hover:bg-bg cursor-pointer">
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <h3 className="font-bold text-text text-lg leading-snug truncate group-hover:text-accent transition-colors duration-150">
+                        {item.name || 'Untitled'}
+                      </h3>
+                      <span className={`text-[9px] uppercase tracking-wider font-semibold block mt-1 ${
+                        item.type === 'canvas' ? 'text-accent' : item.type === 'folder' ? 'text-yellow-500' : 'text-text-muted'
                       }`}>
                         {item.type}
                       </span>
-                    </div>
+                    </>
+                  )}
+                </div>
 
-                    <h3 className="font-bold text-text text-lg leading-snug truncate mt-2 group-hover:text-accent transition-colors duration-150">
-                      {item.name || 'Untitled'}
-                    </h3>
-                  </>
+                {!isEditing && (
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold">
+                      {new Date(item.created_at || item.updated_at).toLocaleDateString()}
+                    </span>
+                    
+                    <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-200 text-[10px] font-bold uppercase tracking-wider">
+                      <button
+                        onClick={(e) => handleStartRename(e, item.id, item.name, item.type)}
+                        className="text-text-muted hover:text-accent transition-colors cursor-pointer"
+                      >
+                        Rename
+                      </button>
+                      <button
+                        onClick={(e) => handleDelete(e, item.id, item.type)}
+                        className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-
-              {!isEditing && (
-                <div className="flex items-center justify-between mt-4 border-t border-border/30 pt-3">
-                  <span className="font-mono text-[8px] text-text-muted">
-                    LOC // {pos.x}, {pos.y}
-                  </span>
-                  
-                  <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider">
-                    <button
-                      onClick={(e) => handleStartRename(e, item.id, item.name, item.type)}
-                      className="text-text-muted hover:text-accent transition-colors cursor-pointer"
-                    >
-                      Rename
-                    </button>
-                    <button
-                      onClick={(e) => handleDelete(e, item.id, item.type)}
-                      className="text-text-muted hover:text-red-500 transition-colors cursor-pointer"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
