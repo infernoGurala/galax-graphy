@@ -21,7 +21,8 @@ export default function FolderScreen() {
     navigateToCanvas,
     navigateToNote,
     updateItemPosition,
-    getPluginData
+    getPluginData,
+    showConfirm
   } = useStore();
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -59,19 +60,95 @@ export default function FolderScreen() {
   const currentFolder = folders.find(f => f.id === currentFolderId);
   const folderNotes = notes.filter(n => n.folder_id === currentFolderId);
 
+  // Combine items for workspace level
+  const workspaceItems = [
+    ...workspaceFolders.map(f => ({ ...f, type: 'folder' })),
+    ...workspaceCanvases.map(c => ({ ...c, type: 'canvas', name: c.title }))
+  ];
+
+  const currentItems = currentFolderId === null ? workspaceItems : folderNotes.map(n => ({ ...n, type: 'note', name: n.title }));
+
   // Active Context ID
   const activeContextId = currentFolderId ? currentFolderId : currentWorkspaceId;
 
-  // Load layout positions
-  const savedLayout = getPluginData('spatial-layout', activeContextId, 'positions') || {};
-  const itemPositions = savedLayout.positions || {};
-  const positionsRef = useRef(itemPositions);
+  // Keep item positions transient (in-memory) for the active session
+  const positionsRef = useRef({});
+
+  // Spotlight search states & screen width tracking
+  const [searchQuery, setSearchQuery] = useState('');
+  const [boardWidth, setBoardWidth] = useState(window.innerWidth);
 
   useEffect(() => {
-    positionsRef.current = itemPositions;
-  }, [JSON.stringify(itemPositions)]);
+    const handleResize = () => {
+      if (boardRef.current) {
+        setBoardWidth(boardRef.current.clientWidth);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Spotlight global typing listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.isContentEditable ||
+        activeEl.closest('.ProseMirror')
+      );
+      if (isInput) return;
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key === 'Escape') {
+        setSearchQuery('');
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (searchQuery) {
+          const matches = currentItems.filter(item =>
+            (item.name || 'Untitled').toLowerCase().includes(searchQuery.toLowerCase())
+          );
+          if (matches.length === 1) {
+            const match = matches[0];
+            if (match.type === 'folder') {
+              navigateToFolder(match.id);
+            } else if (match.type === 'canvas') {
+              navigateToCanvas(match.id);
+            } else if (match.type === 'note') {
+              navigateToNote(match.id);
+            }
+            setSearchQuery('');
+          }
+        }
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        setSearchQuery(prev => prev.slice(0, -1));
+        return;
+      }
+
+      if (e.key.length === 1 && !e.repeat) {
+        if (e.key === ' ' && !searchQuery) return;
+        e.preventDefault();
+        setSearchQuery(prev => prev + e.key);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery, currentItems, navigateToFolder, navigateToCanvas, navigateToNote]);
 
   useEffect(() => {
+    // Reset transient positions when activeContextId changes (switching folders/workspace view)
+    positionsRef.current = {};
+    setSearchQuery('');
+
     // Reset panning and zoom on context change
     setPanOffset({ x: 0, y: 0 });
     setZoom(1);
@@ -158,15 +235,25 @@ export default function FolderScreen() {
     };
   }, []);
 
-  // Get position of items
-  const getItemPos = (itemId, index) => {
+  // Get position of items (dynamically centering grid and sliding matched cards)
+  const getItemPos = (itemId, index, filteredItems = currentItems) => {
     if (positionsRef.current[itemId]) {
       return positionsRef.current[itemId];
     }
+    const displayIndex = filteredItems.findIndex(item => item.id === itemId);
+    const useIndex = displayIndex !== -1 ? displayIndex : index;
+
     const cols = 2;
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    return { x: 100 + col * 340, y: 150 + row * 180 };
+    const col = useIndex % cols;
+    const row = Math.floor(useIndex / cols);
+    
+    const cardWidth = 288;
+    const gapX = 52;
+    const activeCols = Math.min(filteredItems.length, cols);
+    const gridWidth = activeCols * cardWidth + (activeCols - 1) * gapX;
+    
+    const startX = Math.max(100, (boardWidth - (gridWidth || 628)) / 2);
+    return { x: startX + col * 340, y: 150 + row * 180 };
   };
 
   // Background Pointer Down (Panning)
@@ -178,6 +265,7 @@ export default function FolderScreen() {
       x: e.clientX - panOffsetRef.current.x,
       y: e.clientY - panOffsetRef.current.y
     };
+    if (searchQuery) setSearchQuery('');
   };
 
   // Card Pointer Down (Dragging)
@@ -248,7 +336,7 @@ export default function FolderScreen() {
           ...positionsRef.current,
           [id]: { x: finalX, y: finalY }
         };
-        await updateItemPosition(activeContextId, id, finalX, finalY);
+        // Card coordinates are transient (in-session only). Do not persist in backend database.
       }
     }
   };
@@ -296,14 +384,26 @@ export default function FolderScreen() {
 
     if (type === 'folder') {
       const folder = await createFolder(currentWorkspaceId, creationName.trim(), '');
-      await updateItemPosition(currentWorkspaceId, folder.id, creationPos.x, creationPos.y);
+      // Put new folder in local positionsRef so it shows up at creation position in this session
+      positionsRef.current = {
+        ...positionsRef.current,
+        [folder.id]: { x: creationPos.x, y: creationPos.y }
+      };
     } else if (type === 'canvas') {
       const canvas = await createCanvas(currentWorkspaceId, null, creationName.trim(), true, {});
-      await updateItemPosition(currentWorkspaceId, canvas.id, creationPos.x, creationPos.y);
+      // Put new canvas in local positionsRef so it shows up at creation position in this session
+      positionsRef.current = {
+        ...positionsRef.current,
+        [canvas.id]: { x: creationPos.x, y: creationPos.y }
+      };
       navigateToCanvas(canvas.id);
     } else if (type === 'note') {
       const note = await createNote(currentWorkspaceId, currentFolderId, creationName.trim());
-      await updateItemPosition(currentFolderId, note.id, creationPos.x, creationPos.y);
+      // Put new note in local positionsRef so it shows up at creation position in this session
+      positionsRef.current = {
+        ...positionsRef.current,
+        [note.id]: { x: creationPos.x, y: creationPos.y }
+      };
       navigateToNote(note.id);
     }
     
@@ -337,17 +437,24 @@ export default function FolderScreen() {
     setEditingId(null);
   };
 
-  const handleDelete = async (e, id, type) => {
+  const handleDelete = (e, id, type) => {
     e.stopPropagation();
-    if (confirm(`Are you sure you want to delete this ${type}?`)) {
-      if (type === 'folder') {
-        await deleteFolder(id);
-      } else if (type === 'canvas') {
-        await deleteCanvas(id);
-      } else if (type === 'note') {
-        await deleteNote(id);
+    showConfirm({
+      title: `Delete ${type}`,
+      message: `Are you sure you want to permanently delete this ${type}? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      onConfirm: async () => {
+        if (type === 'folder') {
+          await deleteFolder(id);
+        } else if (type === 'canvas') {
+          await deleteCanvas(id);
+        } else if (type === 'note') {
+          await deleteNote(id);
+        }
       }
-    }
+    });
   };
 
   const handleCreateHUD = (type) => {
@@ -358,14 +465,6 @@ export default function FolderScreen() {
     setCreationType(type);
     setCreationName('');
   };
-
-  // Combine items for workspace level
-  const workspaceItems = [
-    ...workspaceFolders.map(f => ({ ...f, type: 'folder' })),
-    ...workspaceCanvases.map(c => ({ ...c, type: 'canvas', name: c.title }))
-  ];
-
-  const currentItems = currentFolderId === null ? workspaceItems : folderNotes.map(n => ({ ...n, type: 'note', name: n.title }));
 
   const renderCreationNode = () => (
     <div 
@@ -443,6 +542,10 @@ export default function FolderScreen() {
     </div>
   );
 
+  const matchingItems = searchQuery
+    ? currentItems.filter(item => (item.name || 'Untitled').toLowerCase().includes(searchQuery.toLowerCase()))
+    : currentItems;
+
   const zoomPercent = Math.round(zoom * 100);
 
   return (
@@ -472,7 +575,7 @@ export default function FolderScreen() {
           )}
           <div className="flex flex-col gap-0.5">
             <h1 className="text-[11px] font-bold uppercase tracking-wider text-text">
-              {currentFolderId === null ? 'Workspace board' : `${currentFolder.name} board`}
+              {currentFolderId === null ? 'Workspace board' : `${currentFolder?.name || 'Folder'} board`}
             </h1>
             <p className="text-[9px] text-text-muted uppercase font-semibold">
               Scroll to Zoom ({zoomPercent}%) · Double-click board or press 'N' to create
@@ -521,23 +624,47 @@ export default function FolderScreen() {
         {/* Spatial Draggable Cards */}
         {currentItems.map((item, index) => {
           const isEditing = editingId === item.id && editingType === item.type;
-          const pos = getItemPos(item.id, index);
+          const isSearching = searchQuery.length > 0;
+          const isMatched = isSearching && (item.name || 'Untitled').toLowerCase().includes(searchQuery.toLowerCase());
+          
+          const pos = getItemPos(
+            item.id,
+            index,
+            isMatched ? matchingItems : currentItems
+          );
+
+          let cardStyle = {
+            position: 'absolute',
+            left: `${pos.x}px`,
+            top: `${pos.y}px`,
+            pointerEvents: isSearching && !isMatched ? 'none' : 'auto',
+            transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+            zIndex: isMatched ? 30 : 10,
+          };
+
+          let extraClass = '';
+          if (isSearching) {
+            if (isMatched) {
+              cardStyle.transform = 'scale(1.08) translateY(-10px)';
+              cardStyle.opacity = 1;
+              extraClass = 'border-accent/80 shadow-[0_20px_50px_rgba(2,132,199,0.35)] ring-2 ring-accent/40';
+            } else {
+              cardStyle.transform = 'scale(0)';
+              cardStyle.opacity = 0;
+            }
+          }
 
           return (
             <div
               key={item.id}
-              style={{
-                position: 'absolute',
-                left: `${pos.x}px`,
-                top: `${pos.y}px`,
-                pointerEvents: 'auto'
-              }}
+              style={cardStyle}
               onPointerDown={(e) => {
+                if (e.target.closest('button') || e.target.closest('input')) return;
                 const cardEl = e.currentTarget;
                 if (!isEditing) handleCardPointerDown(e, item.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, item)}
-              className="group w-72 bg-surface/90 border border-border/80 hover:border-accent/40 rounded-lg shadow-md hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] hover:-translate-y-[2px] transition-[border-color,box-shadow,background-color,transform] duration-200 select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden"
+              className={`group w-72 bg-surface/90 border border-border/80 hover:border-accent/40 rounded-lg shadow-md hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] hover:-translate-y-[2px] transition-[border-color,box-shadow,background-color,transform] duration-200 select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden ${extraClass}`}
             >
               {/* Top Accent Line */}
               <div className={`absolute top-0 left-0 right-0 h-[3px] transition-colors duration-200 ${
@@ -583,7 +710,9 @@ export default function FolderScreen() {
                 {!isEditing && (
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold">
-                      {new Date(item.created_at || item.updated_at).toLocaleDateString()}
+                      {item.created_at || item.updated_at 
+                        ? new Date(item.created_at || item.updated_at).toLocaleDateString() 
+                        : 'Recent'}
                     </span>
                     
                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-200 text-[10px] font-bold uppercase tracking-wider">
@@ -613,12 +742,56 @@ export default function FolderScreen() {
 
       {/* Empty State */}
       {currentItems.length === 0 && !isCreatingMenu && !creationType && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 pointer-events-none">
-          <p className="text-xs text-text-muted uppercase tracking-wider max-w-sm leading-relaxed">
-            The board is clean. Double-click anywhere or click the buttons above to create folders, drawings, or notes.
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 pointer-events-none select-none">
+          <div className="w-12 h-12 rounded-2xl bg-surface/60 border border-border flex items-center justify-center mb-4 text-text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+          </div>
+          <p className="text-xs text-text font-bold uppercase tracking-wider mb-2">This board is empty</p>
+          <p className="text-[10px] text-text-muted uppercase tracking-wider max-w-xs leading-relaxed">
+            Double-click anywhere or press <span className="bg-surface px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">N</span> to create folders, drawings, or notes.
           </p>
         </div>
       )}
+      {/* Spotlight Search HUD Panel */}
+      {searchQuery && (
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-surface/90 border-2 border-accent/70 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-lg flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200 pointer-events-auto">
+          <span className="text-accent text-xs font-bold uppercase tracking-wider select-none">SEARCHING FOR:</span>
+          <span className="text-text font-bold text-base tracking-wide border-r-2 border-accent/70 pr-1.5 animate-pulse font-mono">
+            {searchQuery}
+          </span>
+          <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider bg-bg border border-border px-2 py-0.5 rounded ml-2 select-none">
+            {matchingItems.length} match{matchingItems.length !== 1 ? 'es' : ''}
+          </span>
+          <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider bg-bg border border-border px-2 py-0.5 rounded select-none">
+            Esc to Clear
+          </span>
+          {matchingItems.length === 1 && (
+            <span className="text-[9px] text-green-400 font-bold uppercase tracking-wider bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded animate-bounce">
+              Press Enter to Open
+            </span>
+          )}
+        </div>
+      )}
+      {/* Shortcuts HUD Panel */}
+      <div className="absolute bottom-4 right-6 bg-surface/85 border border-border px-3.5 py-2 rounded-lg backdrop-blur-md flex items-center gap-3 z-10 pointer-events-auto text-[10px] text-text-muted font-bold uppercase tracking-wider select-none shadow-md">
+        <span>shortcuts:</span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">Ctrl+Space</span>
+          <span>Home</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">Alt+Space</span>
+          <span>Search</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">N</span>
+          <span>New</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">Esc</span>
+          <span>Back</span>
+        </span>
+      </div>
     </div>
   );
 }

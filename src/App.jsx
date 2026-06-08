@@ -4,13 +4,15 @@ import PasswordGate from './components/PasswordGate';
 import TopBar from './components/TopBar';
 import WorkspaceScreen from './screens/WorkspaceScreen';
 import FolderScreen from './screens/FolderScreen';
+import YoutubeWorkspaceScreen from './screens/YoutubeWorkspaceScreen';
 import NoteScreen from './screens/NoteScreen';
 import CanvasView from './canvas/CanvasView';
 import SearchPalette from './components/SearchPalette';
 import ErrorBoundary from './components/ErrorBoundary';
+import ConfirmationModal from './components/ConfirmationModal';
 
 export default function App() {
-  const { isAuthenticated, loadData, currentScreen, isLoading, goBack, navigateToWorkspaces } = useStore();
+  const { isAuthenticated, loadData, currentScreen, isLoading, goBack, navigateToWorkspaces, currentWorkspaceId, getWorkspaceType } = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Load data on initial mount once authenticated
@@ -68,8 +70,13 @@ export default function App() {
     switch (currentScreen) {
       case 'workspaces':
         return <WorkspaceScreen />;
-      case 'folders':
+      case 'folders': {
+        const wsType = currentWorkspaceId ? getWorkspaceType(currentWorkspaceId) : 'regular';
+        if (wsType === 'youtube') {
+          return <YoutubeWorkspaceScreen />;
+        }
         return <FolderScreen />;
+      }
       case 'note':
         return <NoteScreen />;
       case 'canvas':
@@ -104,6 +111,9 @@ export default function App() {
       <ErrorBoundary>
         <SearchPalette isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
       </ErrorBoundary>
+
+      {/* Custom Global Confirmation Dialog */}
+      <ConfirmationModal />
     </div>
   );
 }

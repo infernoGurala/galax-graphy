@@ -9,7 +9,10 @@ export default function WorkspaceScreen() {
     deleteWorkspace,
     navigateToWorkspace,
     updateItemPosition,
-    getPluginData
+    getPluginData,
+    getWorkspaceType,
+    saveWorkspaceMetadata,
+    showConfirm
   } = useStore();
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -17,6 +20,7 @@ export default function WorkspaceScreen() {
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [creationPos, setCreationPos] = useState({ x: 150, y: 150 });
+  const [workspaceType, setWorkspaceType] = useState('regular');
 
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
@@ -38,24 +42,91 @@ export default function WorkspaceScreen() {
 
   const syncTimeoutRef = useRef(null);
 
-  // Load layout positions
-  const savedLayout = getPluginData('spatial-layout', 'workspaces-root', 'positions') || {};
-  const itemPositions = savedLayout.positions || {};
-  const positionsRef = useRef(itemPositions);
+  // Keep card positions transient (in-memory) for the active session
+  const positionsRef = useRef({});
+
+  // Spotlight search states & screen width tracking
+  const [searchQuery, setSearchQuery] = useState('');
+  const [boardWidth, setBoardWidth] = useState(window.innerWidth);
 
   useEffect(() => {
-    positionsRef.current = itemPositions;
-  }, [JSON.stringify(itemPositions)]);
+    const handleResize = () => {
+      if (boardRef.current) {
+        setBoardWidth(boardRef.current.clientWidth);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Get position of workspace
-  const getWorkspacePos = (wsId, index) => {
+  // Spotlight global typing listener
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      const activeEl = document.activeElement;
+      const isInput = activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.isContentEditable ||
+        activeEl.closest('.ProseMirror')
+      );
+      if (isInput) return;
+
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+      if (e.key === 'Escape') {
+        setSearchQuery('');
+        return;
+      }
+
+      if (e.key === 'Enter') {
+        if (searchQuery) {
+          const matches = workspaces.filter(ws =>
+            ws.name.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+          if (matches.length === 1) {
+            navigateToWorkspace(matches[0].id);
+            setSearchQuery('');
+          }
+        }
+        return;
+      }
+
+      if (e.key === 'Backspace') {
+        setSearchQuery(prev => prev.slice(0, -1));
+        return;
+      }
+
+      if (e.key.length === 1 && !e.repeat) {
+        if (e.key === ' ' && !searchQuery) return;
+        e.preventDefault();
+        setSearchQuery(prev => prev + e.key);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [searchQuery, workspaces, navigateToWorkspace]);
+
+  // Get position of workspace (dynamically centering grid and sliding matched cards)
+  const getWorkspacePos = (wsId, index, filteredWorkspaces = workspaces) => {
     if (positionsRef.current[wsId]) {
       return positionsRef.current[wsId];
     }
+    const displayIndex = filteredWorkspaces.findIndex(ws => ws.id === wsId);
+    const useIndex = displayIndex !== -1 ? displayIndex : index;
+
     const cols = 2;
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    return { x: 100 + col * 340, y: 150 + row * 180 };
+    const col = useIndex % cols;
+    const row = Math.floor(useIndex / cols);
+    
+    const cardWidth = 288;
+    const gapX = 52;
+    const activeCols = Math.min(filteredWorkspaces.length, cols);
+    const gridWidth = activeCols * cardWidth + (activeCols - 1) * gapX;
+    
+    const startX = Math.max(100, (boardWidth - (gridWidth || 628)) / 2);
+    return { x: startX + col * 340, y: 150 + row * 180 };
   };
 
   // Keyboard shortcut 'n' to spawn new workspace
@@ -139,6 +210,7 @@ export default function WorkspaceScreen() {
       x: e.clientX - panOffsetRef.current.x,
       y: e.clientY - panOffsetRef.current.y
     };
+    if (searchQuery) setSearchQuery('');
   };
 
   // Pointer Down on Card (Dragging)
@@ -210,7 +282,7 @@ export default function WorkspaceScreen() {
           ...positionsRef.current,
           [id]: { x: finalX, y: finalY }
         };
-        await updateItemPosition('workspaces-root', id, finalX, finalY);
+        // Card coordinates are transient (in-session only). Do not persist in backend database.
       }
     }
   };
@@ -235,6 +307,7 @@ export default function WorkspaceScreen() {
     setCreationPos({ x, y });
     setIsCreating(true);
     setNewName('');
+    setWorkspaceType('regular');
   };
 
   const handleCreateSubmit = async (e) => {
@@ -243,10 +316,15 @@ export default function WorkspaceScreen() {
       setIsCreating(false);
       return;
     }
-    const newWs = await createWorkspace(newName.trim(), '');
-    await updateItemPosition('workspaces-root', newWs.id, creationPos.x, creationPos.y);
+    const newWs = await createWorkspace(newName.trim(), workspaceType);
+    // Put new workspace in local positionsRef so it shows up at creation position in this session
+    positionsRef.current = {
+      ...positionsRef.current,
+      [newWs.id]: { x: creationPos.x, y: creationPos.y }
+    };
     setIsCreating(false);
     setNewName('');
+    setWorkspaceType('regular');
   };
 
   const handleStartRename = (e, id, name) => {
@@ -267,11 +345,16 @@ export default function WorkspaceScreen() {
     setEditingId(null);
   };
 
-  const handleDelete = async (e, id) => {
+  const handleDelete = (e, id) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this workspace?')) {
-      await deleteWorkspace(id);
-    }
+    showConfirm({
+      title: 'Delete Workspace',
+      message: 'Are you sure you want to permanently delete this workspace? All its folders, notes, drawings, and custom data will be deleted.',
+      confirmLabel: 'Delete',
+      cancelLabel: 'Cancel',
+      isDestructive: true,
+      onConfirm: () => deleteWorkspace(id)
+    });
   };
 
   const handleCreateButtonHUD = () => {
@@ -281,7 +364,12 @@ export default function WorkspaceScreen() {
     setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
     setIsCreating(true);
     setNewName('');
+    setWorkspaceType('regular');
   };
+
+  const matchingWorkspaces = searchQuery
+    ? workspaces.filter(ws => ws.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : workspaces;
 
   // Convert zoom scale to display percent
   const zoomPercent = Math.round(zoom * 100);
@@ -333,26 +421,56 @@ export default function WorkspaceScreen() {
         {/* Spatial Workspace Cards */}
         {workspaces.map((ws, index) => {
           const isEditing = editingId === ws.id;
-          const pos = getWorkspacePos(ws.id, index);
+          const isSearching = searchQuery.length > 0;
+          const isMatched = isSearching && ws.name.toLowerCase().includes(searchQuery.toLowerCase());
+          
+          const pos = getWorkspacePos(
+            ws.id,
+            index,
+            isMatched ? matchingWorkspaces : workspaces
+          );
+
+          const wsType = getWorkspaceType(ws.id);
+
+          let cardStyle = {
+            position: 'absolute',
+            left: `${pos.x}px`,
+            top: `${pos.y}px`,
+            pointerEvents: isSearching && !isMatched ? 'none' : 'auto',
+            transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+            zIndex: isMatched ? 30 : 10,
+          };
+
+          let extraClass = '';
+          if (isSearching) {
+            if (isMatched) {
+              cardStyle.transform = 'scale(1.08) translateY(-10px)';
+              cardStyle.opacity = 1;
+              extraClass = 'border-accent/80 shadow-[0_20px_50px_rgba(2,132,199,0.35)] ring-2 ring-accent/40';
+            } else {
+              cardStyle.transform = 'scale(0)';
+              cardStyle.opacity = 0;
+            }
+          }
 
           return (
             <div
               key={ws.id}
-              style={{
-                position: 'absolute',
-                left: `${pos.x}px`,
-                top: `${pos.y}px`,
-                pointerEvents: 'auto'
-              }}
+              style={cardStyle}
               onPointerDown={(e) => {
+                if (e.target.closest('button') || e.target.closest('input')) return;
                 const cardEl = e.currentTarget;
                 if (!isEditing) handleCardPointerDown(e, ws.id, index, cardEl);
               }}
               onClick={(e) => handleCardClick(e, ws.id)}
-              className="group w-72 bg-surface/90 border border-border/80 hover:border-accent/40 rounded-lg shadow-md hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] hover:-translate-y-[2px] transition-[border-color,box-shadow,background-color,transform] duration-200 select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden"
+              className={`group w-72 bg-surface/90 border border-border/80 hover:border-accent/40 rounded-lg shadow-md hover:shadow-[0_12px_40px_rgba(0,0,0,0.25)] hover:-translate-y-[2px] transition-[border-color,box-shadow,background-color,transform] duration-200 select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden ${extraClass}`}
             >
               {/* Top Accent Line */}
-              <div className="absolute top-0 left-0 right-0 h-[3px] bg-accent/40 group-hover:bg-accent transition-colors duration-200" />
+              <div className={`absolute top-0 left-0 right-0 h-[3px] transition-colors duration-200 ${
+                wsType === 'youtube' 
+                  ? 'bg-red-500/40 group-hover:bg-red-500' 
+                  : 'bg-accent/40 group-hover:bg-accent'
+              }`} />
 
               <div className="p-5 pt-6 flex-1 flex flex-col justify-between h-full">
                 <div className="min-w-0">
@@ -378,7 +496,14 @@ export default function WorkspaceScreen() {
                         {ws.name}
                       </h3>
                       <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold block mt-1">
-                        Workspace
+                        {wsType === 'youtube' ? (
+                          <span className="text-red-500 font-bold flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                            YouTube Feed
+                          </span>
+                        ) : (
+                          'Workspace'
+                        )}
                       </span>
                     </>
                   )}
@@ -387,7 +512,9 @@ export default function WorkspaceScreen() {
                 {!isEditing && (
                   <div className="flex items-center justify-between mt-4">
                     <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold">
-                      {new Date(ws.created_at).toLocaleDateString()}
+                      {ws.created_at 
+                        ? new Date(ws.created_at).toLocaleDateString() 
+                        : 'Recent'}
                     </span>
                     
                     <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-200 text-[10px] font-bold uppercase tracking-wider">
@@ -423,7 +550,7 @@ export default function WorkspaceScreen() {
           }}
           className="p-4 bg-surface border border-accent rounded-lg shadow-2xl w-64 animate-in zoom-in-95 duration-100"
         >
-          <form onSubmit={handleCreateSubmit} className="flex flex-col gap-2">
+          <form onSubmit={handleCreateSubmit} className="flex flex-col gap-2.5">
             <span className="text-[9px] uppercase tracking-wider font-bold text-accent">New Workspace</span>
             <input
               type="text"
@@ -436,7 +563,36 @@ export default function WorkspaceScreen() {
                 if (e.key === 'Escape') setIsCreating(false);
               }}
             />
-            <div className="flex justify-end gap-1.5 pt-1">
+            
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted">Type</span>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setWorkspaceType('regular')}
+                  className={`flex-1 py-1.5 border text-[10px] font-bold uppercase tracking-wider rounded cursor-pointer transition-all ${
+                    workspaceType === 'regular' 
+                      ? 'border-accent bg-accent/10 text-accent' 
+                      : 'border-border hover:border-accent/40 text-text-muted hover:text-text'
+                  }`}
+                >
+                  Regular
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setWorkspaceType('youtube')}
+                  className={`flex-1 py-1.5 border text-[10px] font-bold uppercase tracking-wider rounded cursor-pointer transition-all ${
+                    workspaceType === 'youtube' 
+                      ? 'border-red-500 bg-red-500/10 text-red-500' 
+                      : 'border-border hover:border-red-500/40 text-text-muted hover:text-text'
+                  }`}
+                >
+                  YouTube
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-1.5 pt-1 border-t border-border mt-1">
               <button
                 type="button"
                 onClick={() => setIsCreating(false)}
@@ -457,12 +613,52 @@ export default function WorkspaceScreen() {
 
       {/* Empty Board Placeholder */}
       {workspaces.length === 0 && !isCreating && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 pointer-events-none">
-          <p className="text-xs text-text-muted uppercase tracking-wider max-w-sm leading-relaxed">
-            The board is clean. Double-click anywhere or click the button above to create your first workspace.
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 pointer-events-none select-none">
+          <div className="w-12 h-12 rounded-2xl bg-surface/60 border border-border flex items-center justify-center mb-4 text-text-muted">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" x2="15" y1="9" y2="9"/><line x1="9" x2="15" y1="13" y2="13"/><line x1="9" x2="13" y1="17" y2="17"/></svg>
+          </div>
+          <p className="text-xs text-text font-bold uppercase tracking-wider mb-2">No workspaces found</p>
+          <p className="text-[10px] text-text-muted uppercase tracking-wider max-w-xs leading-relaxed">
+            Double-click anywhere or press <span className="bg-surface px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">N</span> to create your first workspace.
           </p>
         </div>
       )}
+      {/* Spotlight Search HUD Panel */}
+      {searchQuery && (
+        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-surface/90 border-2 border-accent/70 px-6 py-3.5 rounded-2xl shadow-2xl backdrop-blur-lg flex items-center gap-3 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200 pointer-events-auto">
+          <span className="text-accent text-xs font-bold uppercase tracking-wider select-none">SEARCHING FOR:</span>
+          <span className="text-text font-bold text-base tracking-wide border-r-2 border-accent/70 pr-1.5 animate-pulse font-mono">
+            {searchQuery}
+          </span>
+          <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider bg-bg border border-border px-2 py-0.5 rounded ml-2 select-none">
+            {matchingWorkspaces.length} match{matchingWorkspaces.length !== 1 ? 'es' : ''}
+          </span>
+          <span className="text-[9px] text-text-muted font-bold uppercase tracking-wider bg-bg border border-border px-2 py-0.5 rounded select-none">
+            Esc to Clear
+          </span>
+          {matchingWorkspaces.length === 1 && (
+            <span className="text-[9px] text-green-400 font-bold uppercase tracking-wider bg-green-500/10 border border-green-500/20 px-2 py-0.5 rounded animate-bounce">
+              Press Enter to Open
+            </span>
+          )}
+        </div>
+      )}
+      {/* Shortcuts HUD Panel */}
+      <div className="absolute bottom-4 right-6 bg-surface/85 border border-border px-3.5 py-2 rounded-lg backdrop-blur-md flex items-center gap-3 z-10 pointer-events-auto text-[10px] text-text-muted font-bold uppercase tracking-wider select-none shadow-md">
+        <span>shortcuts:</span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">Ctrl+Space</span>
+          <span>Home</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">Alt+Space</span>
+          <span>Search</span>
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="bg-bg px-1.5 py-0.5 rounded border border-border font-mono text-[9px] text-text">N</span>
+          <span>New</span>
+        </span>
+      </div>
     </div>
   );
 }

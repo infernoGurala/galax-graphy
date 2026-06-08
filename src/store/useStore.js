@@ -34,6 +34,9 @@ export const useStore = create((set, get) => ({
   currentCanvasId: null,
   currentScreen: 'workspaces', // 'workspaces', 'folders', 'note', 'canvas'
 
+  // Custom Confirmation Dialog State
+  confirmDialog: null, // { title: string, message: string, confirmLabel: string, cancelLabel: string, isDestructive: boolean, onConfirm: () => void }
+
   // Data Lists
   workspaces: [],
   folders: [],
@@ -109,6 +112,9 @@ export const useStore = create((set, get) => ({
       currentScreen: 'canvas'
     });
   },
+
+  showConfirm: (dialog) => set({ confirmDialog: dialog }),
+  hideConfirm: () => set({ confirmDialog: null }),
 
   // --- Data Loading & Syncing ---
   loadData: async () => {
@@ -204,7 +210,7 @@ export const useStore = create((set, get) => ({
   },
 
   // --- Workspace Actions ---
-  createWorkspace: async (name, icon = '') => {
+  createWorkspace: async (name, type = 'regular', icon = '') => {
     const newWorkspace = {
       id: generateUUID(),
       name,
@@ -229,6 +235,11 @@ export const useStore = create((set, get) => ({
         console.error('Failed to sync created workspace to Supabase:', err);
       }
     }
+
+    if (type !== 'regular') {
+      await get().savePluginData('workspace-properties', 'properties', newWorkspace.id, { type, links: [] });
+    }
+
     return newWorkspace;
   },
 
@@ -259,12 +270,14 @@ export const useStore = create((set, get) => ({
       const folders = state.folders.filter(f => f.workspace_id !== id);
       const notes = state.notes.filter(n => n.workspace_id !== id);
       const canvases = state.canvases.filter(c => c.workspace_id !== id);
+      const pluginData = state.pluginData.filter(p => p.ref_id !== id);
 
       if (!isSupabaseConfigured) {
         localStorage.setItem(LS_KEYS.WORKSPACES, JSON.stringify(workspaces));
         localStorage.setItem(LS_KEYS.FOLDERS, JSON.stringify(folders));
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
         localStorage.setItem(LS_KEYS.CANVASES, JSON.stringify(canvases));
+        localStorage.setItem(LS_KEYS.PLUGIN_DATA, JSON.stringify(pluginData));
       }
 
       return {
@@ -272,6 +285,7 @@ export const useStore = create((set, get) => ({
         folders,
         notes,
         canvases,
+        pluginData,
         currentWorkspaceId: state.currentWorkspaceId === id ? null : state.currentWorkspaceId,
         currentScreen: state.currentWorkspaceId === id ? 'workspaces' : state.currentScreen
       };
@@ -279,6 +293,7 @@ export const useStore = create((set, get) => ({
 
     if (isSupabaseConfigured) {
       try {
+        await supabase.from('plugin_data').delete().eq('ref_id', id);
         const { error } = await supabase.from('workspaces').delete().eq('id', id);
         if (error) throw error;
       } catch (err) {
@@ -653,9 +668,21 @@ export const useStore = create((set, get) => ({
   },
 
   getItemPosition: (contextId, itemId) => {
-    const data = get().getPluginData('spatial-layout', itemId, 'positions'); // refId is itemId in generic get
-    // Wait, let's look at getPluginData: getPluginData(pluginId, refId, namespace)
     const record = get().getPluginData('spatial-layout', contextId, 'positions');
     return record?.positions?.[itemId] || null;
+  },
+
+  getWorkspaceType: (workspaceId) => {
+    const data = get().getPluginData('workspace-properties', workspaceId, 'properties');
+    return data?.type || 'regular';
+  },
+
+  getWorkspaceLinks: (workspaceId) => {
+    const data = get().getPluginData('workspace-properties', workspaceId, 'properties');
+    return data?.links || [];
+  },
+
+  saveWorkspaceMetadata: async (workspaceId, type, links) => {
+    await get().savePluginData('workspace-properties', 'properties', workspaceId, { type, links });
   }
 }));

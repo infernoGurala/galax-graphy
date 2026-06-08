@@ -6,7 +6,7 @@ import Link from '@tiptap/extension-link';
 import { useStore } from '../store/useStore';
 import { ExcalidrawNode, PluginBlockNode, SlashCommand, getSuggestionItems } from './CustomExtensions';
 
-export default function NovelEditor({ noteId }) {
+export default function NovelEditor({ noteId, setSaveStatus }) {
   const notes = useStore(state => state.notes);
   const updateNoteContent = useStore(state => state.updateNoteContent);
   const currentWorkspaceId = useStore(state => state.currentWorkspaceId);
@@ -24,6 +24,13 @@ export default function NovelEditor({ noteId }) {
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuRef = useRef(null);
+  const saveTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
+  }, []);
 
   // Setup the TipTap Editor
   const editor = useEditor({
@@ -43,7 +50,14 @@ export default function NovelEditor({ noteId }) {
     content: note?.content || { type: 'doc', content: [] },
     onUpdate: ({ editor }) => {
       const json = editor.getJSON();
-      updateNoteContent(noteId, json);
+      setSaveStatus?.('saving');
+      
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = setTimeout(async () => {
+        await updateNoteContent(noteId, json);
+        setSaveStatus?.('saved');
+      }, 750);
+      
       handleSelectionOrTextUpdate(editor);
     },
     onSelectionUpdate: ({ editor }) => {

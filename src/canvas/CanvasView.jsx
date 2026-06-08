@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { Excalidraw } from '@excalidraw/excalidraw';
+import SaveStatusIndicator from '../components/SaveStatusIndicator';
 
 export default function CanvasView() {
   const { currentCanvasId, canvases, updateCanvasData, renameCanvas, navigateToWorkspace } = useStore();
   const canvas = canvases.find(c => c.id === currentCanvasId);
   const [title, setTitle] = useState('');
   const [isReady, setIsReady] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('saved');
   const saveTimeoutRef = useRef(null);
+  const renameTimeoutRef = useRef(null);
 
   // Sync title from store
   useEffect(() => {
     if (canvas) {
       setTitle(canvas.title);
     }
+    return () => {
+      if (renameTimeoutRef.current) clearTimeout(renameTimeoutRef.current);
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    };
   }, [currentCanvasId, canvas]);
 
   useEffect(() => {
@@ -32,18 +39,22 @@ export default function CanvasView() {
   const handleTitleChange = (e) => {
     const newTitle = e.target.value;
     setTitle(newTitle);
-    renameCanvas(canvas.id, newTitle);
+    setSaveStatus('saving');
+
+    if (renameTimeoutRef.current) clearTimeout(renameTimeoutRef.current);
+    renameTimeoutRef.current = setTimeout(async () => {
+      await renameCanvas(canvas.id, newTitle);
+      setSaveStatus('saved');
+    }, 500);
   };
 
   const handleExcalidrawChange = (elements, appState) => {
     if (!currentCanvasId) return;
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+    setSaveStatus('saving');
 
-    saveTimeoutRef.current = setTimeout(() => {
-      updateCanvasData(currentCanvasId, {
+    saveTimeoutRef.current = setTimeout(async () => {
+      await updateCanvasData(currentCanvasId, {
         elements: elements.map(el => ({
           id: el.id,
           type: el.type,
@@ -83,6 +94,7 @@ export default function CanvasView() {
           viewBackgroundColor: appState.viewBackgroundColor,
         }
       });
+      setSaveStatus('saved');
     }, 1000); // 1s save debounce
   };
 
@@ -108,6 +120,8 @@ export default function CanvasView() {
           className="bg-transparent border-none text-base font-bold text-text outline-none placeholder:text-text-muted flex-1 py-1"
         />
         
+        <SaveStatusIndicator status={saveStatus} />
+
         <span className="text-[10px] text-text-muted px-2 py-0.5 rounded bg-surface border border-border uppercase font-semibold tracking-wider">
           Canvas
         </span>
