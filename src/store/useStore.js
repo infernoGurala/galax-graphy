@@ -705,5 +705,22 @@ export const useStore = create((set, get) => ({
 
   saveWorkspaceMetadata: async (workspaceId, type, links) => {
     await get().savePluginData('workspace-properties', 'properties', workspaceId, { type, links });
+  },
+
+  getWorkspaceDescription: (workspaceId) => {
+    const data = get().getPluginData('workspace-properties', workspaceId, 'properties');
+    if (data && data.description !== undefined) {
+      return data.description;
+    }
+    const type = data?.type || 'regular';
+    if (type === 'youtube') {
+      return "Integrated YouTube workspace with interactive video player, custom notes manager, and progress trackers.";
+    }
+    return "Multi-layer document studio containing text files, folders, and standalone graphics boards.";
+  },
+
+  saveWorkspaceDescription: async (workspaceId, description) => {
+    const data = get().getPluginData('workspace-properties', workspaceId, 'properties') || { type: 'regular', links: [] };
+    await get().savePluginData('workspace-properties', 'properties', workspaceId, { ...data, description });
   }
 }));

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3, GripVertical } from 'lucide-react';
+import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3, GripVertical, Settings } from 'lucide-react';
 
 const YoutubeIcon = ({ className = '', ...props }) => (
   <svg
@@ -59,10 +59,10 @@ export default function WorkspaceScreen() {
       sorted.sort((a, b) => {
         const idxA = customOrder.indexOf(a.id);
         const idxB = customOrder.indexOf(b.id);
-        
+
         const valA = idxA !== -1 ? idxA : Infinity;
         const valB = idxB !== -1 ? idxB : Infinity;
-        
+
         if (valA === valB) {
           return new Date(a.created_at) - new Date(b.created_at);
         }
@@ -89,7 +89,7 @@ export default function WorkspaceScreen() {
     const relativeY = e.clientY - rect.top;
     const isTopHalf = relativeY < rect.height / 2;
     const position = isTopHalf ? 'top' : 'bottom';
-    
+
     if (dragOverId !== wsId) {
       setDragOverId(wsId);
     }
@@ -137,7 +137,7 @@ export default function WorkspaceScreen() {
       }
 
       newIds.splice(insertIdx, 0, draggedWsId);
-      
+
       await savePluginData('workspace-order', 'list', 'root', { order: newIds });
     }
   };
@@ -282,18 +282,32 @@ export default function WorkspaceScreen() {
       return savedPos;
     }
 
+    const parentGroup = groups.find(g => (g.cardIds || []).includes(wsId));
+    if (parentGroup) {
+      const groupCards = parentGroup.cardIds || [];
+      const cardIdxInGroup = groupCards.indexOf(wsId);
+      const useIdx = cardIdxInGroup !== -1 ? cardIdxInGroup : 0;
+
+      const xOffset = 20;
+      const yOffset = 40 + 20;
+      return {
+        x: parentGroup.x + xOffset,
+        y: parentGroup.y + yOffset + useIdx * 160
+      };
+    }
+
     const displayIndex = filteredWorkspaces.findIndex(ws => ws.id === wsId);
     const useIndex = displayIndex !== -1 ? displayIndex : index;
 
     const cols = 2;
     const col = useIndex % cols;
     const row = Math.floor(useIndex / cols);
-    
+
     const cardWidth = 288;
     const gapX = 52;
     const activeCols = Math.min(filteredWorkspaces.length, cols);
     const gridWidth = activeCols * cardWidth + (activeCols - 1) * gapX;
-    
+
     const startX = Math.max(100, (boardWidth - (gridWidth || 628)) / 2);
     return { x: startX + col * 340, y: 150 + row * 180 };
   };
@@ -365,7 +379,7 @@ export default function WorkspaceScreen() {
     draggedTypeRef.current = 'group';
     draggedElementRef.current = element;
     hasMovedRef.current = false;
-    
+
     element.setPointerCapture(e.pointerId);
 
     const group = groups.find(g => g.id === groupId);
@@ -402,7 +416,7 @@ export default function WorkspaceScreen() {
     draggedTypeRef.current = 'group-resize';
     draggedElementRef.current = element;
     hasMovedRef.current = false;
-    
+
     element.setPointerCapture(e.pointerId);
 
     const group = groups.find(g => g.id === groupId);
@@ -419,7 +433,7 @@ export default function WorkspaceScreen() {
     draggedTypeRef.current = 'card';
     draggedElementRef.current = element;
     hasMovedRef.current = false;
-    
+
     element.setPointerCapture(e.pointerId);
     element.classList.add('ring-1', 'ring-white/30', 'shadow-[0_0_30px_rgba(255,255,255,0.08)]', 'z-50');
     element.setAttribute('data-dragging', 'true');
@@ -435,7 +449,7 @@ export default function WorkspaceScreen() {
       const dx = e.clientX - panStartRef.current.x;
       const dy = e.clientY - panStartRef.current.y;
       panOffsetRef.current = { x: dx, y: dy };
-      
+
       if (contentRef.current) {
         contentRef.current.style.transform = `translate(${dx}px, ${dy}px) scale(${zoomRef.current})`;
       }
@@ -454,7 +468,7 @@ export default function WorkspaceScreen() {
         if (type === 'card') {
           const newX = Math.max(10, dragStartPosRef.current.x + dx / zoom);
           const newY = Math.max(10, dragStartPosRef.current.y + dy / zoom);
-          
+
           draggedElementRef.current.style.left = `${newX}px`;
           draggedElementRef.current.style.top = `${newY}px`;
 
@@ -466,7 +480,8 @@ export default function WorkspaceScreen() {
             const isInsideY = cardCenterY >= g.y && cardCenterY <= g.y + (g.height || 300);
             return isInsideX && isInsideY && !g.collapsed;
           });
-          setHoveredGroupId(groupHovered ? groupHovered.id : null);
+          const targetHoverId = groupHovered ? groupHovered.id : null;
+          setHoveredGroupId(prev => prev !== targetHoverId ? targetHoverId : prev);
         } else if (type === 'group') {
           const newX = Math.max(10, dragStartPosRef.current.x + dx / zoom);
           const newY = Math.max(10, dragStartPosRef.current.y + dy / zoom);
@@ -504,7 +519,7 @@ export default function WorkspaceScreen() {
       const id = draggedIdRef.current;
       const element = draggedElementRef.current;
       const type = draggedTypeRef.current;
-      
+
       draggedIdRef.current = null;
       draggedElementRef.current = null;
       element.releasePointerCapture(e.pointerId);
@@ -515,7 +530,7 @@ export default function WorkspaceScreen() {
         if (type === 'card') {
           const finalX = parseInt(element.style.left, 10);
           const finalY = parseInt(element.style.top, 10);
-          
+
           positionsRef.current = {
             ...positionsRef.current,
             [id]: { x: finalX, y: finalY }
@@ -527,8 +542,8 @@ export default function WorkspaceScreen() {
           const cardCenterY = finalY + 72;
           const targetGroup = groups.find(g => {
             return cardCenterX >= g.x && cardCenterX <= g.x + (g.width || 400) &&
-                   cardCenterY >= g.y && cardCenterY <= g.y + (g.height || 300) &&
-                   !g.collapsed;
+              cardCenterY >= g.y && cardCenterY <= g.y + (g.height || 300) &&
+              !g.collapsed;
           });
 
           const updatedGroups = groups.map(g => {
@@ -637,11 +652,11 @@ export default function WorkspaceScreen() {
   const handleBoardDoubleClick = (e) => {
     if (e.target !== boardRef.current || isCreating) return;
     const rect = boardRef.current.getBoundingClientRect();
-    
+
     // Scale double-click creation coordinates
     const x = (e.clientX - rect.left - panOffsetRef.current.x) / zoomRef.current;
     const y = (e.clientY - rect.top - panOffsetRef.current.y) / zoomRef.current;
-    
+
     setCreationPos({ x, y });
     setIsCreating(true);
     setCreationType('workspace');
@@ -729,180 +744,177 @@ export default function WorkspaceScreen() {
     ? orderedWorkspaces.filter(ws => ws.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : orderedWorkspaces;
 
+  const regularWorkspaces = matchingWorkspaces.filter(ws => getWorkspaceType(ws.id) !== 'youtube');
+  const youtubeWorkspaces = matchingWorkspaces.filter(ws => getWorkspaceType(ws.id) === 'youtube');
+  const hasBothTypes = regularWorkspaces.length > 0 && youtubeWorkspaces.length > 0;
+
   // Convert zoom scale to display percent
   const zoomPercent = Math.round(zoom * 100);
 
   return (
-    <div 
+    <div
       ref={boardRef}
       onPointerDown={viewMode === 'board' ? handleBoardPointerDown : undefined}
       onPointerMove={viewMode === 'board' ? handlePointerMove : undefined}
       onPointerUp={viewMode === 'board' ? handlePointerUp : undefined}
       onDoubleClick={viewMode === 'board' ? handleBoardDoubleClick : undefined}
-      style={viewMode === 'board' ? { 
-        backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1.2px, transparent 1.2px)', 
+      style={viewMode === 'board' ? {
+        backgroundImage: 'radial-gradient(rgba(255,255,255,0.035) 1.2px, transparent 1.2px)',
         backgroundSize: '32px 32px',
         touchAction: 'none'
       } : undefined}
-      className={`w-full h-full bg-transparent relative select-none font-sans ${
-        viewMode === 'board' ? 'overflow-hidden cursor-grab active:cursor-grabbing' : 'overflow-y-auto'
-      }`}
+      className={`w-full h-full bg-transparent relative select-none font-sans ${viewMode === 'board' ? 'overflow-hidden cursor-grab active:cursor-grabbing' : 'overflow-y-auto'
+        }`}
     >
 
 
       {/* Conditionally Render Layout Views */}
       {viewMode === 'dashboard' && (
-        <div className="max-w-2xl mx-auto px-6 pt-24 pb-16 flex flex-col gap-8 font-sans select-none relative z-10 animate-in fade-in duration-300">
+        <div className={`${hasBothTypes ? 'max-w-5xl' : 'max-w-2xl'} mx-auto px-6 pt-24 pb-16 flex flex-col gap-8 font-sans select-none relative z-10 animate-in fade-in duration-300`}>
           <header className="flex flex-col gap-2.5 border-b border-border/60 pb-6">
             <div className="flex items-center gap-2 font-mono text-[9px] text-text-muted uppercase tracking-wider">
               <span className="w-1.5 h-1.5 bg-[#10b981] rounded-full animate-pulse-dot" />
               <span>Inferno Gurala // {time}</span>
             </div>
-            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent animate-logo-glide">
+            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent">
               GALAX GRAPHY
             </h1>
           </header>
 
           {/* Cards Stack */}
-          <div className="flex flex-col gap-6">
+          <div className={hasBothTypes ? "grid grid-cols-1 md:grid-cols-2 gap-8 items-start" : "flex flex-col gap-6"}>
             {matchingWorkspaces.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-xs text-text-dim uppercase font-mono tracking-wider">No workspaces found</p>
               </div>
             ) : (
-              (() => {
-                const regularWorkspaces = matchingWorkspaces.filter(ws => getWorkspaceType(ws.id) !== 'youtube');
-                const youtubeWorkspaces = matchingWorkspaces.filter(ws => getWorkspaceType(ws.id) === 'youtube');
-                return (
-                  <>
-                    {regularWorkspaces.length > 0 && (
-                      <div className="flex flex-col gap-4">
-                        <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">Workspaces</h2>
-                        <div className="flex flex-col gap-4.5">
-                          {regularWorkspaces.map((ws, index) => {
-                            const idxStr = `[0${index + 1}/0${regularWorkspaces.length}]`;
-                            return (
+              <>
+                {regularWorkspaces.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">Workspaces</h2>
+                    <div className="flex flex-col gap-4.5">
+                      {regularWorkspaces.map((ws, index) => {
+                        const idxStr = `[0${index + 1}/0${regularWorkspaces.length}]`;
+                        return (
+                          <div
+                            key={ws.id}
+                            className="relative"
+                            onDragOver={(e) => handleDragOver(e, ws.id)}
+                            onDragEnter={(e) => handleDragEnter(e, ws.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, ws.id)}
+                          >
+                            {dragOverId === ws.id && dragOverPosition && (
                               <div
-                                key={ws.id}
-                                className="relative"
-                                onDragOver={(e) => handleDragOver(e, ws.id)}
-                                onDragEnter={(e) => handleDragEnter(e, ws.id)}
-                                onDragLeave={handleDragLeave}
-                                onDrop={(e) => handleDrop(e, ws.id)}
+                                className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
+                                style={{
+                                  top: dragOverPosition === 'top' ? '-10px' : 'auto',
+                                  bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
+                                }}
                               >
-                                {dragOverId === ws.id && dragOverPosition && (
-                                  <div 
-                                    className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
-                                    style={{
-                                      top: dragOverPosition === 'top' ? '-10px' : 'auto',
-                                      bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
-                                    }}
-                                  >
-                                    <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
-                                  </div>
-                                )}
-                                <div
-                                  onClick={() => navigateToWorkspace(ws.id)}
-                                  onMouseMove={handleTiltMouseMove}
-                                  onMouseLeave={handleTiltMouseLeave}
-                                  draggable={true}
-                                  onDragStart={(e) => handleDragStart(e, ws.id)}
-                                  onDragEnd={handleDragEnd}
-                                  className="premium-card p-6 flex flex-col gap-3.5 cursor-grab active:cursor-grabbing relative overflow-hidden transition-all duration-300 group hover:scale-[1.005]"
-                                >
-                                  <div className="card-glare-overlay" />
-
-                                  <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
-                                    <div className="flex items-center gap-1.5">
-                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing" />
-                                      <span>{idxStr}</span>
-                                    </div>
-                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-border bg-surface/30 text-text-muted">
-                                      Workspace
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-between relative z-10 mt-1">
-                                    <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
-                                      {ws.name}
-                                    </h3>
-                                    <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
-                                  </div>
-                                  <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
-                                    Multi-layer document studio containing text files, folders, and standalone graphics boards.
-                                  </p>
-                                </div>
+                                <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+                            )}
+                            <div
+                              onClick={() => navigateToWorkspace(ws.id)}
+                              onMouseMove={handleTiltMouseMove}
+                              onMouseLeave={handleTiltMouseLeave}
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, ws.id)}
+                              onDragEnd={handleDragEnd}
+                              className="premium-card p-6 flex flex-col gap-3.5 cursor-grab active:cursor-grabbing relative overflow-hidden transition-all duration-300 group hover:scale-[1.005]"
+                            >
+                              <div className="card-glare-overlay" />
 
-                    {youtubeWorkspaces.length > 0 && (
-                      <div className="flex flex-col gap-4 mt-2">
-                        <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">YouTube Studios</h2>
-                        <div className="flex flex-col gap-4.5">
-                          {youtubeWorkspaces.map((ws, index) => {
-                            const idxStr = `[0${index + 1}/0${youtubeWorkspaces.length}]`;
-                            return (
+                              <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
+                                <div className="flex items-center gap-1.5">
+                                  <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing" />
+                                  <span>{idxStr}</span>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-border bg-surface/30 text-text-muted">
+                                  Workspace
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between relative z-10 mt-1">
+                                <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
+                                  {ws.name}
+                                </h3>
+                                <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                              </div>
+                              <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
+                                Multi-layer document studio containing text files, folders, and standalone graphics boards.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {youtubeWorkspaces.length > 0 && (
+                  <div className="flex flex-col gap-4">
+                    <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">YouTube Studios</h2>
+                    <div className="flex flex-col gap-4.5">
+                      {youtubeWorkspaces.map((ws, index) => {
+                        const idxStr = `[0${index + 1}/0${youtubeWorkspaces.length}]`;
+                        return (
+                          <div
+                            key={ws.id}
+                            className="relative"
+                            onDragOver={(e) => handleDragOver(e, ws.id)}
+                            onDragEnter={(e) => handleDragEnter(e, ws.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, ws.id)}
+                          >
+                            {dragOverId === ws.id && dragOverPosition && (
                               <div
-                                key={ws.id}
-                                className="relative"
-                                onDragOver={(e) => handleDragOver(e, ws.id)}
-                                onDragEnter={(e) => handleDragEnter(e, ws.id)}
-                                onDragLeave={handleDragLeave}
-                                onDrop={(e) => handleDrop(e, ws.id)}
+                                className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
+                                style={{
+                                  top: dragOverPosition === 'top' ? '-10px' : 'auto',
+                                  bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
+                                }}
                               >
-                                {dragOverId === ws.id && dragOverPosition && (
-                                  <div 
-                                    className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
-                                    style={{
-                                      top: dragOverPosition === 'top' ? '-10px' : 'auto',
-                                      bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
-                                    }}
-                                  >
-                                    <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
-                                  </div>
-                                )}
-                                <div
-                                  onClick={() => navigateToWorkspace(ws.id)}
-                                  onMouseMove={handleTiltMouseMove}
-                                  onMouseLeave={handleTiltMouseLeave}
-                                  draggable={true}
-                                  onDragStart={(e) => handleDragStart(e, ws.id)}
-                                  onDragEnd={handleDragEnd}
-                                  className="premium-card p-6 flex flex-col gap-3.5 cursor-grab active:cursor-grabbing relative overflow-hidden transition-all duration-300 group hover:scale-[1.005]"
-                                >
-                                  <div className="card-glare-overlay" />
-
-                                  <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
-                                    <div className="flex items-center gap-1.5">
-                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing" />
-                                      <span>{idxStr}</span>
-                                    </div>
-                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-red-500/20 bg-red-500/5 text-red-400">
-                                      YouTube
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-between relative z-10 mt-1">
-                                    <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
-                                      {ws.name}
-                                    </h3>
-                                    <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
-                                  </div>
-                                  <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
-                                    Integrated YouTube workspace with interactive video player, custom notes manager, and progress trackers.
-                                  </p>
-                                </div>
+                                <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()
+                            )}
+                            <div
+                              onClick={() => navigateToWorkspace(ws.id)}
+                              onMouseMove={handleTiltMouseMove}
+                              onMouseLeave={handleTiltMouseLeave}
+                              draggable={true}
+                              onDragStart={(e) => handleDragStart(e, ws.id)}
+                              onDragEnd={handleDragEnd}
+                              className="premium-card p-6 flex flex-col gap-3.5 cursor-grab active:cursor-grabbing relative overflow-hidden transition-all duration-300 group hover:scale-[1.005]"
+                            >
+                              <div className="card-glare-overlay" />
+
+                              <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
+                                <div className="flex items-center gap-1.5">
+                                  <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing" />
+                                  <span>{idxStr}</span>
+                                </div>
+                                <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-red-500/20 bg-red-500/5 text-red-400">
+                                  YouTube
+                                </span>
+                              </div>
+                              <div className="flex items-center justify-between relative z-10 mt-1">
+                                <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
+                                  {ws.name}
+                                </h3>
+                                <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                              </div>
+                              <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
+                                Integrated YouTube workspace with interactive video player, custom notes manager, and progress trackers.
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -910,7 +922,7 @@ export default function WorkspaceScreen() {
 
       {/* Conditionally Render Layout Views */}
       {viewMode === 'board' && (
-        <div 
+        <div
           ref={contentRef}
           style={{
             transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoom})`,
@@ -929,7 +941,7 @@ export default function WorkspaceScreen() {
               const hasMatchedCardInside = matchedCards.some(ws => {
                 const pos = getWorkspacePos(ws.id, workspaces.indexOf(ws));
                 return pos.x >= group.x && pos.x <= group.x + (group.width || 400) &&
-                       pos.y >= group.y && pos.y <= group.y + (group.height || 300);
+                  pos.y >= group.y && pos.y <= group.y + (group.height || 300);
               });
               const groupMatched = group.title.toLowerCase().includes(searchQuery.toLowerCase());
               if (!groupMatched && !hasMatchedCardInside) {
@@ -960,7 +972,7 @@ export default function WorkspaceScreen() {
             const isEditing = editingId === ws.id;
             const isSearching = searchQuery.length > 0;
             const isMatched = isSearching && ws.name.toLowerCase().includes(searchQuery.toLowerCase());
-            
+
             const pos = getWorkspacePos(
               ws.id,
               index,
@@ -1175,7 +1187,7 @@ export default function WorkspaceScreen() {
                             const isEditing = editingId === ws.id;
                             const wsType = getWorkspaceType(ws.id);
                             return (
-                              <tr 
+                              <tr
                                 key={ws.id}
                                 onClick={() => editingId !== ws.id && navigateToWorkspace(ws.id)}
                                 className="group hover:bg-surface transition-colors duration-150 cursor-pointer"
@@ -1209,11 +1221,10 @@ export default function WorkspaceScreen() {
                                   )}
                                 </td>
                                 <td className="py-4 px-6 text-xs font-mono text-text-muted">
-                                  <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${
-                                    wsType === 'youtube' 
-                                      ? 'border-red-500/20 bg-red-500/10 text-red-500' 
+                                  <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${wsType === 'youtube'
+                                      ? 'border-red-500/20 bg-red-500/10 text-red-500'
                                       : 'border-accent/20 bg-accent/10 text-accent'
-                                  }`}>
+                                    }`}>
                                     {wsType === 'youtube' ? 'YouTube' : 'Workspace'}
                                   </span>
                                 </td>
@@ -1267,7 +1278,7 @@ export default function WorkspaceScreen() {
                             const isEditing = editingId === ws.id;
                             const wsType = getWorkspaceType(ws.id);
                             return (
-                              <tr 
+                              <tr
                                 key={ws.id}
                                 onClick={() => editingId !== ws.id && navigateToWorkspace(ws.id)}
                                 className="group hover:bg-surface transition-colors duration-150 cursor-pointer"
@@ -1301,11 +1312,10 @@ export default function WorkspaceScreen() {
                                   )}
                                 </td>
                                 <td className="py-4 px-6 text-xs font-mono text-text-muted">
-                                  <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${
-                                    wsType === 'youtube' 
-                                      ? 'border-red-500/20 bg-red-500/10 text-red-500' 
+                                  <span className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider ${wsType === 'youtube'
+                                      ? 'border-red-500/20 bg-red-500/10 text-red-500'
                                       : 'border-accent/20 bg-accent/10 text-accent'
-                                  }`}>
+                                    }`}>
                                     {wsType === 'youtube' ? 'YouTube' : 'Workspace'}
                                   </span>
                                 </td>
@@ -1346,8 +1356,8 @@ export default function WorkspaceScreen() {
 
       {/* Creation form mounted spatial-ly (Board View) */}
       {isCreating && viewMode === 'board' && (
-        <div 
-          style={{ 
+        <div
+          style={{
             position: 'absolute',
             left: creationPos.x * zoom + panOffset.x,
             top: creationPos.y * zoom + panOffset.y,
@@ -1360,18 +1370,16 @@ export default function WorkspaceScreen() {
               <button
                 type="button"
                 onClick={() => setCreationType('workspace')}
-                className={`flex-1 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                  creationType === 'workspace' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
-                }`}
+                className={`flex-1 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${creationType === 'workspace' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
+                  }`}
               >
                 Workspace
               </button>
               <button
                 type="button"
                 onClick={() => setCreationType('group')}
-                className={`flex-1 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                  creationType === 'group' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
-                }`}
+                className={`flex-1 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${creationType === 'group' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
+                  }`}
               >
                 Group
               </button>
@@ -1391,7 +1399,7 @@ export default function WorkspaceScreen() {
                 if (e.key === 'Escape') setIsCreating(false);
               }}
             />
-            
+
             {creationType === 'workspace' ? (
               <div className="flex flex-col gap-1.5">
                 <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted font-mono">Type</span>
@@ -1399,22 +1407,20 @@ export default function WorkspaceScreen() {
                   <button
                     type="button"
                     onClick={() => setWorkspaceType('regular')}
-                    className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
-                      workspaceType === 'regular' 
-                        ? 'border-accent bg-accent/10 text-accent font-extrabold' 
+                    className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'regular'
+                        ? 'border-accent bg-accent/10 text-accent font-extrabold'
                         : 'border-border hover:border-accent text-text-muted hover:text-text'
-                    }`}
+                      }`}
                   >
                     Regular
                   </button>
                   <button
                     type="button"
                     onClick={() => setWorkspaceType('youtube')}
-                    className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
-                      workspaceType === 'youtube' 
-                        ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold' 
+                    className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'youtube'
+                        ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold'
                         : 'border-border hover:border-red-500 text-text-muted hover:text-text'
-                    }`}
+                      }`}
                   >
                     YouTube
                   </button>
@@ -1429,14 +1435,12 @@ export default function WorkspaceScreen() {
                       key={color}
                       type="button"
                       onClick={() => setGroupColor(color)}
-                      className={`w-5 h-5 rounded-full border cursor-pointer transition-all ${
-                        groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
-                      } ${
-                        color === 'default' ? 'bg-text/20 border-border' :
-                        color === 'red' ? 'bg-red-500 border-red-500/10' :
-                        color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
-                        color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
-                      }`}
+                      className={`w-5 h-5 rounded-full border cursor-pointer transition-all ${groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
+                        } ${color === 'default' ? 'bg-text/20 border-border' :
+                          color === 'red' ? 'bg-red-500 border-red-500/10' :
+                            color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
+                              color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
+                        }`}
                     />
                   ))}
                 </div>
@@ -1471,18 +1475,16 @@ export default function WorkspaceScreen() {
                 <button
                   type="button"
                   onClick={() => setCreationType('workspace')}
-                  className={`flex-1 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                    creationType === 'workspace' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
-                  }`}
+                  className={`flex-1 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${creationType === 'workspace' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
+                    }`}
                 >
                   Workspace
                 </button>
                 <button
                   type="button"
                   onClick={() => setCreationType('group')}
-                  className={`flex-1 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                    creationType === 'group' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
-                  }`}
+                  className={`flex-1 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${creationType === 'group' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
+                    }`}
                 >
                   Group
                 </button>
@@ -1502,7 +1504,7 @@ export default function WorkspaceScreen() {
                   if (e.key === 'Escape') setIsCreating(false);
                 }}
               />
-              
+
               {creationType === 'workspace' ? (
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted font-mono">Type</span>
@@ -1510,22 +1512,20 @@ export default function WorkspaceScreen() {
                     <button
                       type="button"
                       onClick={() => setWorkspaceType('regular')}
-                      className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
-                        workspaceType === 'regular' 
-                          ? 'border-accent bg-accent/10 text-accent font-extrabold' 
+                      className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'regular'
+                          ? 'border-accent bg-accent/10 text-accent font-extrabold'
                           : 'border-border hover:border-accent text-text-muted hover:text-text'
-                      }`}
+                        }`}
                     >
                       Regular
                     </button>
                     <button
                       type="button"
                       onClick={() => setWorkspaceType('youtube')}
-                      className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
-                        workspaceType === 'youtube' 
-                          ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold' 
+                      className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'youtube'
+                          ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold'
                           : 'border-border hover:border-red-500 text-text-muted hover:text-text'
-                      }`}
+                        }`}
                     >
                       YouTube
                     </button>
@@ -1540,14 +1540,12 @@ export default function WorkspaceScreen() {
                         key={color}
                         type="button"
                         onClick={() => setGroupColor(color)}
-                        className={`w-6 h-6 rounded-full border cursor-pointer transition-all ${
-                          groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
-                        } ${
-                          color === 'default' ? 'bg-text/20 border-border' :
-                          color === 'red' ? 'bg-red-500 border-red-500/10' :
-                          color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
-                          color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
-                        }`}
+                        className={`w-6 h-6 rounded-full border cursor-pointer transition-all ${groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
+                          } ${color === 'default' ? 'bg-text/20 border-border' :
+                            color === 'red' ? 'bg-red-500 border-red-500/10' :
+                              color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
+                                color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
+                          }`}
                       />
                     ))}
                   </div>
@@ -1578,11 +1576,11 @@ export default function WorkspaceScreen() {
       {workspaces.length === 0 && !isCreating && (
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-8 pointer-events-none select-none animate-in fade-in duration-200">
           <div className="w-12 h-12 rounded-2xl bg-surface/60 border border-border flex items-center justify-center mb-4 text-text-muted">
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="9" x2="15" y1="9" y2="9"/><line x1="9" x2="15" y1="13" y2="13"/><line x1="9" x2="13" y1="17" y2="17"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="opacity-60"><rect width="18" height="18" x="3" y="3" rx="2" ry="2" /><line x1="9" x2="15" y1="9" y2="9" /><line x1="9" x2="15" y1="13" y2="13" /><line x1="9" x2="13" y1="17" y2="17" /></svg>
           </div>
           <p className="text-xs text-text font-bold uppercase tracking-wider mb-2">No workspaces found</p>
           <p className="text-[10px] text-text-muted uppercase tracking-wider max-w-xs leading-relaxed font-mono">
-            {viewMode === 'board' 
+            {viewMode === 'board'
               ? "Double-click anywhere to create your first workspace."
               : "Press 'Create Workspace' to create your first workspace."
             }
@@ -1620,9 +1618,8 @@ export default function WorkspaceScreen() {
               setViewMode('dashboard');
               localStorage.setItem('galax_workspace_view_mode', 'dashboard');
             }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
           >
             Dashboard
           </button>
@@ -1631,9 +1628,8 @@ export default function WorkspaceScreen() {
               setViewMode('board');
               localStorage.setItem('galax_workspace_view_mode', 'board');
             }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
           >
             Board
           </button>
@@ -1642,9 +1638,8 @@ export default function WorkspaceScreen() {
               setViewMode('grid');
               localStorage.setItem('galax_workspace_view_mode', 'grid');
             }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
           >
             Grid
           </button>
@@ -1653,9 +1648,8 @@ export default function WorkspaceScreen() {
               setViewMode('list');
               localStorage.setItem('galax_workspace_view_mode', 'list');
             }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
+            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
           >
             List
           </button>
@@ -1668,6 +1662,15 @@ export default function WorkspaceScreen() {
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New</span>
+        </button>
+
+        {/* Settings Button */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+          className="bg-surface border border-border/60 hover:bg-surface/50 text-text-muted hover:text-text p-2 rounded-xl transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
+          title="Settings"
+        >
+          <Settings className="w-3.5 h-3.5" />
         </button>
       </div>
 
@@ -1729,9 +1732,8 @@ function WorkspaceCard({
         if (!isEditing) handleCardPointerDown(e, ws.id, index, e.currentTarget);
       }}
       onClick={(e) => handleCardClick(e, ws.id)}
-      className={`group ${
-        isAbsolute ? 'w-72 absolute' : 'w-full'
-      } select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden premium-card hover:scale-[1.01] ${extraClass}`}
+      className={`group ${isAbsolute ? 'w-72 absolute' : 'w-full'
+        } select-none flex flex-col justify-between h-36 cursor-pointer relative overflow-hidden premium-card hover:scale-[1.01] ${extraClass}`}
     >
       {/* Spotlight shine overlay */}
       <div className="card-glare-overlay" />
@@ -1760,11 +1762,10 @@ function WorkspaceCard({
                 {ws.name}
               </h3>
               <div className="mt-1.5">
-                <span className={`px-2 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] ${
-                  wsType === 'youtube'
+                <span className={`px-2 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] ${wsType === 'youtube'
                     ? 'border-red-500/10 bg-red-500/5 text-red-400'
                     : 'border-white/10 bg-white/5 text-white/70'
-                }`}>
+                  }`}>
                   {wsType === 'youtube' ? 'YouTube' : 'Workspace'}
                 </span>
               </div>
@@ -1775,11 +1776,11 @@ function WorkspaceCard({
         {!isEditing && (
           <div className="flex items-center justify-between mt-4">
             <span className="text-[9px] text-text-dim uppercase tracking-wider font-semibold font-mono">
-              {ws.created_at 
-                ? new Date(ws.created_at).toLocaleDateString() 
+              {ws.created_at
+                ? new Date(ws.created_at).toLocaleDateString()
                 : 'Recent'}
             </span>
-            
+
             <div className="opacity-0 group-hover:opacity-100 flex items-center gap-3 transition-opacity duration-150 text-[10px] font-bold uppercase tracking-wider font-mono" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={(e) => handleStartRename(e, ws.id, ws.name)}
@@ -1819,37 +1820,37 @@ function GroupCard({
 
   const colors = {
     default: {
-      border: 'border-white/10 hover:border-white/20',
-      bg: 'bg-white/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(255,255,255,0.01)]',
+      border: 'border-border/60 hover:border-accent/30',
+      bg: 'bg-surface/10',
+      glow: '',
       text: 'text-text-muted',
-      bullet: 'bg-white/40'
+      bullet: 'bg-text/40'
     },
     red: {
-      border: 'border-red-500/20 hover:border-red-500/30',
-      bg: 'bg-red-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(239,68,68,0.02)]',
+      border: 'border-red-500/30 hover:border-red-500/50',
+      bg: 'bg-red-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(239,68,68,0.03)]',
       text: 'text-red-400',
       bullet: 'bg-red-500'
     },
     blue: {
-      border: 'border-blue-500/20 hover:border-blue-500/30',
-      bg: 'bg-blue-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(59,130,246,0.02)]',
+      border: 'border-blue-500/30 hover:border-blue-500/50',
+      bg: 'bg-blue-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(59,130,246,0.03)]',
       text: 'text-blue-400',
       bullet: 'bg-blue-500'
     },
     green: {
-      border: 'border-emerald-500/20 hover:border-emerald-500/30',
-      bg: 'bg-emerald-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(16,185,129,0.02)]',
+      border: 'border-emerald-500/30 hover:border-emerald-500/50',
+      bg: 'bg-emerald-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(16,185,129,0.03)]',
       text: 'text-emerald-400',
       bullet: 'bg-emerald-500'
     },
     yellow: {
-      border: 'border-yellow-500/20 hover:border-yellow-500/30',
-      bg: 'bg-yellow-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(234,179,8,0.02)]',
+      border: 'border-yellow-500/30 hover:border-yellow-500/50',
+      bg: 'bg-yellow-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(234,179,8,0.03)]',
       text: 'text-yellow-400',
       bullet: 'bg-yellow-500'
     }
@@ -1896,15 +1897,14 @@ function GroupCard({
         zIndex: 5,
         pointerEvents: 'auto'
       }}
-      className={`rounded-2xl border backdrop-blur-[2px] transition-[border-color,background-color,box-shadow] duration-200 flex flex-col ${
-        isHovered
+      className={`rounded-2xl border backdrop-blur-[2px] transition-[border-color,background-color,box-shadow] duration-200 flex flex-col ${isHovered
           ? (group.color === 'red' ? 'ring-2 ring-red-500/80 border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.2)]' :
-             group.color === 'blue' ? 'ring-2 ring-blue-500/80 border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.2)]' :
-             group.color === 'green' ? 'ring-2 ring-emerald-500/80 border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.2)]' :
-             group.color === 'yellow' ? 'ring-2 ring-yellow-500/80 border-yellow-500/80 shadow-[0_0_20px_rgba(234,179,8,0.2)]' :
-             'ring-2 ring-accent border-accent/80 shadow-[0_0_20px_rgba(139,92,246,0.2)]')
+            group.color === 'blue' ? 'ring-2 ring-blue-500/80 border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.2)]' :
+              group.color === 'green' ? 'ring-2 ring-emerald-500/80 border-emerald-500/80 shadow-[0_0_20px_rgba(16,185,129,0.2)]' :
+                group.color === 'yellow' ? 'ring-2 ring-yellow-500/80 border-yellow-500/80 shadow-[0_0_20px_rgba(234,179,8,0.2)]' :
+                  'ring-2 ring-accent border-accent/80 shadow-[0_0_20px_rgba(139,92,246,0.2)]')
           : scheme.border
-      } ${scheme.bg} ${scheme.glow}`}
+        } ${scheme.bg} ${scheme.glow}`}
     >
       {/* Header (Drag Handle) */}
       <div
@@ -1931,7 +1931,7 @@ function GroupCard({
               strokeLinejoin="round"
               className={`transform transition-transform duration-200 ${group.collapsed ? '-rotate-90' : ''}`}
             >
-              <path d="m6 9 6 6 6-6"/>
+              <path d="m6 9 6 6 6-6" />
             </svg>
           </button>
           <span className={`w-1.5 h-1.5 rounded-full ${scheme.bullet}`} />
@@ -1964,12 +1964,11 @@ function GroupCard({
               <button
                 key={cName}
                 onClick={() => handleColorChange(cName)}
-                className={`w-2.5 h-2.5 rounded-full border border-white/5 cursor-pointer ${
-                  cName === 'default' ? 'bg-white/20' : 
-                  cName === 'red' ? 'bg-red-500' :
-                  cName === 'blue' ? 'bg-blue-500' :
-                  cName === 'green' ? 'bg-emerald-500' : 'bg-yellow-500'
-                } ${group.color === cName ? 'ring-1 ring-white' : ''}`}
+                className={`w-2.5 h-2.5 rounded-full border border-white/5 cursor-pointer ${cName === 'default' ? 'bg-white/20' :
+                    cName === 'red' ? 'bg-red-500' :
+                      cName === 'blue' ? 'bg-blue-500' :
+                        cName === 'green' ? 'bg-emerald-500' : 'bg-yellow-500'
+                  } ${group.color === cName ? 'ring-1 ring-white' : ''}`}
               />
             ))}
           </div>
@@ -1998,12 +1997,12 @@ function GroupCard({
               </svg>
             </button>
           )}
-          
+
           <button
             onClick={handleDeleteGroup}
             className="text-text-muted hover:text-red-500 transition-colors p-1 rounded cursor-pointer border-none bg-transparent"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" /></svg>
           </button>
         </div>
       </div>
@@ -2018,7 +2017,7 @@ function GroupCard({
           }}
           className="absolute bottom-1 right-1 w-4 h-4 cursor-se-resize flex items-end justify-end p-0.5 opacity-30 hover:opacity-100 transition-opacity"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-text-muted"><line x1="22" y1="2" x2="2" y2="22"/><line x1="22" y1="10" x2="10" y2="22"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-text-muted"><line x1="22" y1="2" x2="2" y2="22" /><line x1="22" y1="10" x2="10" y2="22" /></svg>
         </div>
       )}
     </div>

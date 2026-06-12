@@ -22,9 +22,9 @@ export const THEMES = {
     id: 'dark',
     name: 'Inverted Dark',
     description: 'Perfect dark inversion of the showcase theme',
-    contrastRatio: '12.96',
-    bg: '#000000',
-    text: '#CCCCCC',
+    contrastRatio: '12.96', // Contrast ratio will be recalculated or kept as is
+    bg: '#191919',
+    text: '#dadada',
     textMuted: '#999999',
     textDim: '#595959',
     surface: '#0A0A0A',

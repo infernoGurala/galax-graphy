@@ -221,6 +221,52 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
     };
   }, [quill]);
 
+  // Format text command listener (triggered from right-click context menu)
+  useEffect(() => {
+    const q = quill;
+    if (!q) return;
+
+    const handleFormatText = (e) => {
+      const { format, value } = e.detail;
+      const range = q.getSelection();
+
+      // Ensure Quill editor holds focus
+      q.focus();
+
+      if (format === 'clean') {
+        if (range && range.length > 0) {
+          q.removeFormat(range.index, range.length);
+        }
+      } else {
+        if (range) {
+          if (format === 'bold') {
+            const currentFormat = q.getFormat(range);
+            q.format('bold', !currentFormat.bold);
+          } else if (format === 'italic') {
+            const currentFormat = q.getFormat(range);
+            q.format('italic', !currentFormat.italic);
+          } else if (format === 'underline') {
+            const currentFormat = q.getFormat(range);
+            q.format('underline', !currentFormat.underline);
+          } else if (format === 'strike') {
+            const currentFormat = q.getFormat(range);
+            q.format('strike', !currentFormat.strike);
+          } else if (format === 'code-block') {
+            const currentFormat = q.getFormat(range);
+            q.format('code-block', !currentFormat['code-block']);
+          } else {
+            q.format(format, value);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('format-text', handleFormatText);
+    return () => {
+      window.removeEventListener('format-text', handleFormatText);
+    };
+  }, [quill]);
+
   return (
     <div className="w-full relative py-2">
       {/* Custom Showcase-styled Toolbar */}

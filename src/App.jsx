@@ -12,6 +12,8 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmationModal from './components/ConfirmationModal';
 import { applyTheme, getStoredTheme } from './lib/themes';
 import SettingsPanel from './components/SettingsPanel';
+import { Settings } from 'lucide-react';
+import ContextMenu from './components/ContextMenu';
 
 export default function App() {
   const {
@@ -25,15 +27,24 @@ export default function App() {
     navigateToWorkspaces
   } = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
+  const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
 
-  // Global right-click settings toggle listener
+  // Custom event listener for settings panel
+  useEffect(() => {
+    const handleOpenSettings = () => setSettingsOpen(true);
+    window.addEventListener('open-settings', handleOpenSettings);
+    return () => window.removeEventListener('open-settings', handleOpenSettings);
+  }, []);
+
+  // Global right-click text styling menu listener
   useEffect(() => {
     const handleContextMenu = (e) => {
       if (!isAuthenticated) return;
       e.preventDefault();
-      setSettingsOpen(true);
+      setContextMenuPos({ x: e.clientX, y: e.clientY });
+      setIsContextMenuOpen(true);
     };
 
     window.addEventListener('contextmenu', handleContextMenu);
@@ -52,13 +63,6 @@ export default function App() {
     }
   }, [isAuthenticated, loadData]);
 
-  // Intro loader timeout
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowIntro(false);
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, []);
   // Bind global keyboard shortcuts (Ctrl+Space = Home, Esc = Back, Alt+Space = Search)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -123,24 +127,6 @@ export default function App() {
   return (
     <div className="h-screen w-screen bg-bg text-text selection:bg-accent/30 selection:text-text flex flex-col font-sans relative overflow-hidden select-none">
 
-
-      {/* Cinematic Text-Blur Boot Loader */}
-      {showIntro && (
-        <div className="fixed inset-0 bg-bg flex flex-col items-center justify-center z-[10000] pointer-events-none transition-opacity duration-500">
-          <div className="text-center flex flex-col items-center gap-[1.2rem]">
-            <div className="font-sans text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold text-white uppercase tracking-[0.22em] animate-[cinematicReveal_1.4s_cubic-bezier(0.16,1,0.3,1)_forwards]">
-              GALAX GRAPHY
-            </div>
-            <div className="font-mono text-[0.65rem] text-white/40 tracking-[0.25em] uppercase opacity-0 animate-[fadeIn_1s_ease_forwards_0.4s]">
-              Space of Inferno
-            </div>
-            <div className="w-[110px] h-[1px] bg-white/10 relative overflow-hidden rounded-[1px] opacity-0 animate-[fadeIn_1s_ease_forwards_0.6s]">
-              <div className="absolute top-0 left-[-100%] w-full h-full bg-gradient-to-r from-transparent via-white to-transparent animate-[progressFill_1.3s_cubic-bezier(0.5,0,0.2,1)_forwards_0.5s]" />
-            </div>
-          </div>
-        </div>
-      )}
-
       {!isAuthenticated ? (
         <PasswordGate />
       ) : (
@@ -176,6 +162,33 @@ export default function App() {
 
           {/* Global right-click settings panel */}
           <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+
+          {/* Floating settings trigger button at bottom right (rendered when no HUD is active) */}
+          {(() => {
+            const wsType = currentWorkspaceId ? getWorkspaceType(currentWorkspaceId) : 'regular';
+            const showStandaloneSettings = 
+              currentScreen === 'note' || 
+              currentScreen === 'canvas' || 
+              (currentScreen === 'folders' && wsType === 'youtube');
+            return showStandaloneSettings && (
+              <button 
+                onClick={() => setSettingsOpen(true)}
+                className="fixed bottom-6 right-6 z-50 p-2.5 rounded-xl bg-surface/85 backdrop-blur-md border border-border/80 text-text-muted hover:text-text hover:bg-surface hover:scale-105 active:scale-95 shadow-2xl transition-all duration-200 cursor-pointer flex items-center justify-center"
+                title="Settings"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            );
+          })()}
+
+          {/* Custom Right-Click Context Menu for Text Styling */}
+          {isContextMenuOpen && (
+            <ContextMenu 
+              x={contextMenuPos.x} 
+              y={contextMenuPos.y} 
+              onClose={() => setIsContextMenuOpen(false)} 
+            />
+          )}
         </>
       )}
     </div>

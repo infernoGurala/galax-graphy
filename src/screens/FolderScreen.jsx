@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Kanban, LayoutGrid, List, Plus, Folder, Palette, FileText, ArrowLeft } from 'lucide-react';
+import { Kanban, LayoutGrid, List, Plus, Folder, Palette, FileText, ArrowLeft, Settings } from 'lucide-react';
 
 export default function FolderScreen() {
   const {
@@ -267,6 +267,20 @@ export default function FolderScreen() {
       return savedPos;
     }
 
+    const parentGroup = groups.find(g => (g.cardIds || []).includes(itemId));
+    if (parentGroup) {
+      const groupCards = parentGroup.cardIds || [];
+      const cardIdxInGroup = groupCards.indexOf(itemId);
+      const useIdx = cardIdxInGroup !== -1 ? cardIdxInGroup : 0;
+      
+      const xOffset = 20;
+      const yOffset = 40 + 20;
+      return {
+        x: parentGroup.x + xOffset,
+        y: parentGroup.y + yOffset + useIdx * 160
+      };
+    }
+
     const displayIndex = filteredItems.findIndex(item => item.id === itemId);
     const useIndex = displayIndex !== -1 ? displayIndex : index;
 
@@ -311,28 +325,21 @@ export default function FolderScreen() {
     dragStartPosRef.current = { x: group.x, y: group.y };
     dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
 
-    // Find all cards visually inside this group
+    // Move all member cards (cardIds)
     const insideCards = [];
+    const memberCardIds = group.cardIds || [];
     if (contentRef.current) {
-      const cardElements = contentRef.current.querySelectorAll('[data-item-id]');
-      cardElements.forEach(el => {
-        const id = el.getAttribute('data-item-id');
+      memberCardIds.forEach(id => {
+        const el = contentRef.current.querySelector(`[data-item-id="${id}"]`);
         const itemIdx = currentItems.findIndex(item => item.id === id);
-        if (itemIdx !== -1) {
+        if (el && itemIdx !== -1) {
           const pos = getItemPos(id, itemIdx);
-          if (
-            pos.x >= group.x &&
-            pos.x <= group.x + (group.width || 400) &&
-            pos.y >= group.y &&
-            pos.y <= group.y + (group.height || 300)
-          ) {
-            insideCards.push({
-              id,
-              startX: pos.x,
-              startY: pos.y,
-              element: el
-            });
-          }
+          insideCards.push({
+            id,
+            startX: pos.x,
+            startY: pos.y,
+            element: el
+          });
         }
       });
     }
@@ -410,7 +417,8 @@ export default function FolderScreen() {
             const isInsideY = cardCenterY >= g.y && cardCenterY <= g.y + (g.height || 300);
             return isInsideX && isInsideY && !g.collapsed;
           });
-          setHoveredGroupId(groupHovered ? groupHovered.id : null);
+          const targetHoverId = groupHovered ? groupHovered.id : null;
+          setHoveredGroupId(prev => prev !== targetHoverId ? targetHoverId : prev);
         } else if (type === 'group') {
           const newX = Math.max(10, dragStartPosRef.current.x + dx / zoom);
           const newY = Math.max(10, dragStartPosRef.current.y + dy / zoom);
@@ -857,7 +865,7 @@ export default function FolderScreen() {
               <span className="w-1.5 h-1.5 bg-[#10b981] rounded-full animate-pulse-dot" />
               <span>Active Directory // {time}</span>
             </div>
-            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent animate-logo-glide truncate">
+            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent truncate">
               {currentFolderId === null 
                 ? (workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Root') 
                 : (folders.find(f => f.id === currentFolderId)?.name || 'Folder')}
@@ -1616,6 +1624,15 @@ export default function FolderScreen() {
           <Plus className="w-3.5 h-3.5" />
           <span>New</span>
         </button>
+
+        {/* Settings Button */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+          className="bg-surface border border-border/60 hover:bg-surface/50 text-text-muted hover:text-text p-2 rounded-xl transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
+          title="Settings"
+        >
+          <Settings className="w-3.5 h-3.5" />
+        </button>
       </div>
 
     </div>
@@ -1773,30 +1790,30 @@ function GroupCard({
       bullet: 'bg-text/40'
     },
     red: {
-      border: 'border-red-500/20 hover:border-red-500/30',
-      bg: 'bg-red-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(239,68,68,0.02)]',
+      border: 'border-red-500/30 hover:border-red-500/50',
+      bg: 'bg-red-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(239,68,68,0.03)]',
       text: 'text-red-400',
       bullet: 'bg-red-500'
     },
     blue: {
-      border: 'border-blue-500/20 hover:border-blue-500/30',
-      bg: 'bg-blue-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(59,130,246,0.02)]',
+      border: 'border-blue-500/30 hover:border-blue-500/50',
+      bg: 'bg-blue-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(59,130,246,0.03)]',
       text: 'text-blue-400',
       bullet: 'bg-blue-500'
     },
     green: {
-      border: 'border-emerald-500/20 hover:border-emerald-500/30',
-      bg: 'bg-emerald-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(16,185,129,0.02)]',
+      border: 'border-emerald-500/30 hover:border-emerald-500/50',
+      bg: 'bg-emerald-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(16,185,129,0.03)]',
       text: 'text-emerald-400',
       bullet: 'bg-emerald-500'
     },
     yellow: {
-      border: 'border-yellow-500/20 hover:border-yellow-500/30',
-      bg: 'bg-yellow-500/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(234,179,8,0.02)]',
+      border: 'border-yellow-500/30 hover:border-yellow-500/50',
+      bg: 'bg-yellow-500/[0.04]',
+      glow: 'shadow-[0_0_15px_rgba(234,179,8,0.03)]',
       text: 'text-yellow-400',
       bullet: 'bg-yellow-500'
     }
