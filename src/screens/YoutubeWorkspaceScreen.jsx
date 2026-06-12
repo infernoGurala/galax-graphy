@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
 import { 
   ArrowLeft, 
@@ -269,7 +269,7 @@ export default function YoutubeWorkspaceScreen() {
   if (!currentWorkspace) return null;
 
   return (
-    <div className="w-full min-h-[calc(100vh-68px)] bg-bg text-text p-6 flex flex-col font-sans relative overflow-x-hidden">
+    <div className="w-full min-h-[calc(100vh-68px)] bg-transparent text-text p-6 flex flex-col font-sans relative overflow-x-hidden">
       
       {/* CSS Animations */}
       <style>{`
@@ -299,7 +299,7 @@ export default function YoutubeWorkspaceScreen() {
         <div className="flex items-center gap-4">
           <button
             onClick={navigateToWorkspaces}
-            className="p-2.5 bg-surface/40 hover:bg-surface border border-border/60 hover:border-red-500/40 text-text-muted hover:text-text rounded-xl transition-all duration-200 cursor-pointer active:scale-90 shadow-md"
+            className="p-2.5 bg-surface/40 hover:bg-surface border border-border/60 hover:border-white/20 text-text-muted hover:text-text rounded-xl transition-all duration-200 cursor-pointer active:scale-90 shadow-md"
             title="Back to board"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -330,7 +330,7 @@ export default function YoutubeWorkspaceScreen() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-surface/50 border border-border/80 hover:border-red-500/30 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
+                className="bg-surface/50 border border-border/80 hover:border-white/20 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -340,7 +340,7 @@ export default function YoutubeWorkspaceScreen() {
               <select
                 value={filterTag}
                 onChange={(e) => setFilterTag(e.target.value)}
-                className="bg-surface/50 border border-border/80 hover:border-red-500/30 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
+                className="bg-surface/50 border border-border/80 hover:border-white/20 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
               >
                 <option value="all">All Tags</option>
                 <option value="Ambient">Ambient</option>
@@ -362,7 +362,7 @@ export default function YoutubeWorkspaceScreen() {
                 placeholder="Filter index..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface/50 backdrop-blur-md border border-border/80 focus:border-red-500/80 rounded-xl pl-10 pr-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-[0_0_15px_rgba(239,68,68,0.1)] focus:bg-surface/85"
+                className="w-full bg-surface/50 backdrop-blur-md border border-border/80 focus:border-white/25 rounded-xl pl-10 pr-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:bg-surface/85"
               />
             </div>
           )}
@@ -381,15 +381,15 @@ export default function YoutubeWorkspaceScreen() {
                 className={`w-full bg-surface/50 backdrop-blur-md border ${
                   errorMsg 
                     ? 'border-red-500 focus:border-red-500 animate-pulse' 
-                    : 'border-border/85 focus:border-red-500/80'
-                } rounded-xl px-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-[0_0_15px_rgba(239,68,68,0.15)] focus:bg-surface/80`}
+                    : 'border-border/85 focus:border-white/25'
+                } rounded-xl px-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:bg-surface/80`}
               />
             </div>
             
             <button
               type="submit"
               disabled={isAdding || !newLink.trim()}
-              className="py-2 px-4 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 disabled:from-surface/40 disabled:to-surface/40 disabled:text-text-muted disabled:border-border/60 text-white text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all duration-150 active:scale-95 shadow-lg shadow-red-950/20 cursor-pointer select-none"
+              className="py-2 px-4 bg-white hover:bg-white/90 disabled:bg-surface/40 disabled:text-text-muted text-black text-xs font-extrabold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all duration-150 active:scale-95 shadow-lg shadow-white/5 cursor-pointer border-none select-none"
             >
               {isAdding ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -461,192 +461,270 @@ export default function YoutubeWorkspaceScreen() {
           {displayLinks.map((link, idx) => {
             const stats = getVideoStats(link.title);
             const activeTag = link.customTag || stats.tag;
-            const isNotesExpanded = expandedNotesId === link.id;
             
             return (
-              <div
+              <YoutubeVideoCard
                 key={link.id}
-                style={{ animationDelay: `${idx * 0.05}s` }}
-                className={`animate-card opacity-0 bg-surface/30 backdrop-blur-md border ${
-                  link.watched ? 'border-border/40 opacity-70' : 'border-border/70 hover:border-red-500/40'
-                } rounded-2xl shadow-xl hover:shadow-[0_15px_30px_rgba(239,68,68,0.06)] hover:-translate-y-1 hover:rotate-0.5 transition-all duration-300 flex flex-col overflow-hidden group`}
-              >
-                {/* Media Player Container */}
-                <div className="aspect-video w-full relative bg-black overflow-hidden border-b border-border/80">
-                  {activeVideoId === link.id ? (
-                    <iframe
-                      title={link.title}
-                      src={`https://www.youtube-nocookie.com/embed/${link.videoId}?autoplay=1`}
-                      className="absolute inset-0 w-full h-full border-0"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                    />
-                  ) : (
-                    /* Video Thumbnail w/ Play Overlay */
-                    <div 
-                      onClick={() => setActiveVideoId(link.id)}
-                      className="absolute inset-0 w-full h-full cursor-pointer overflow-hidden group/thumb"
-                    >
-                      <img
-                        src={link.thumbnailUrl}
-                        alt={link.title}
-                        className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
-                        onError={(e) => {
-                          e.target.src = `https://img.youtube.com/vi/${link.videoId}/mqdefault.jpg`;
-                        }}
-                      />
-                      
-                      {/* Dark overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 group-hover/thumb:via-black/25 transition-colors" />
-                      
-                      {/* Pulsing Play Button */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="relative flex items-center justify-center">
-                          {/* Dial frame */}
-                          <div className="absolute w-16 h-16 rounded-full border border-dashed border-red-500/40 opacity-0 group-hover/thumb:opacity-100 group-hover/thumb:scale-110 group-hover/thumb:rotate-45 transition-all duration-300" />
-                          
-                          <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg group-hover/thumb:scale-105 group-hover/thumb:bg-red-500 transition-all duration-300 relative z-10 shadow-red-950/50">
-                            <Play className="w-5 h-5 fill-current ml-0.5" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Watch & Tag Headers */}
-                      <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ring-2 ${stats.color} shadow-lg backdrop-blur-md`}>
-                          {activeTag}
-                        </span>
-                        <span className="text-[9px] bg-black/60 border border-white/10 text-yellow-400 font-extrabold px-2 py-0.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-0.5">
-                          <Zap className="w-2.5 h-2.5 fill-current" /> {stats.power}
-                        </span>
-                      </div>
-
-                      {/* Watched stamp */}
-                      {link.watched && (
-                        <div className="absolute bottom-3 left-3 bg-red-600/90 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm pointer-events-none">
-                          <Check className="w-3.5 h-3.5" /> Completed
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Details Section */}
-                <div className="p-4 flex-1 flex flex-col justify-between gap-3 bg-surface/20">
-                  <div className="min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className={`font-extrabold text-xs md:text-sm text-text leading-snug line-clamp-2 group-hover:text-red-400 transition-colors duration-200 ${
-                        link.watched ? 'line-through text-text-muted' : ''
-                      }`}>
-                        {link.title}
-                      </h3>
-                      
-                      {/* Completion Toggle */}
-                      <button
-                        onClick={() => handleToggleWatched(link.id)}
-                        className={`p-1.5 rounded-lg border transition-all active:scale-90 cursor-pointer ${
-                          link.watched 
-                            ? 'bg-red-500/20 border-red-500/40 text-red-400' 
-                            : 'bg-surface/30 border-border/80 text-text-muted hover:text-text'
-                        }`}
-                        title={link.watched ? 'Mark unwatched' : 'Mark watched'}
-                      >
-                        <CheckCircle className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    <p className="text-[10px] text-text-muted font-bold mt-1 truncate flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-red-500/70 rounded-full" /> {link.authorName}
-                    </p>
-                  </div>
-
-                  {/* Expandable Study Notes Panel */}
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center justify-between">
-                      <button
-                        onClick={() => setExpandedNotesId(isNotesExpanded ? null : link.id)}
-                        className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors ${
-                          link.notes ? 'text-red-400 hover:text-red-300' : 'text-text-muted hover:text-text'
-                        }`}
-                      >
-                        <FileText className="w-3 h-3" />
-                        <span>Notes {link.notes ? '(Active)' : ''}</span>
-                      </button>
-
-                      {/* Manual Tag Override */}
-                      <div className="flex items-center gap-1">
-                        <Bookmark className="w-3 h-3 text-text-muted" />
-                        <select
-                          value={link.customTag || 'auto'}
-                          onChange={(e) => handleUpdateTag(link.id, e.target.value === 'auto' ? '' : e.target.value)}
-                          className="bg-transparent border-0 text-[10px] text-text-muted hover:text-text font-bold outline-none cursor-pointer"
-                        >
-                          <option value="auto">Tag: Auto</option>
-                          <option value="Ambient">Ambient</option>
-                          <option value="Brain-Up">Brain-Up</option>
-                          <option value="Cosmos">Cosmos</option>
-                          <option value="Feed Item">Feed Item</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {isNotesExpanded && (
-                      <textarea
-                        value={activeNotesId === link.id ? localNotes : link.notes || ''}
-                        onFocus={() => handleNotesFocus(link.id, link.notes)}
-                        onBlur={() => handleNotesBlur(link.id)}
-                        onChange={(e) => setLocalNotes(e.target.value)}
-                        placeholder="Write study notes or timestamps..."
-                        className="w-full bg-surface/50 border border-border/70 rounded-xl p-2.5 text-xs text-text placeholder-text-muted resize-none h-20 outline-none focus:border-red-500/50"
-                      />
-                    )}
-                  </div>
-
-                  {/* Footer Controls & Stats */}
-                  <div className="flex items-center justify-between pt-3 border-t border-border/60 mt-auto">
-                    <span className="text-[9px] text-text-muted uppercase tracking-widest font-black">
-                      NODE {idx + 1} // {new Date(link.addedAt).toLocaleDateString()}
-                    </span>
-                    
-                    <div className="flex items-center gap-2">
-                      {/* Copy Link */}
-                      <button
-                        onClick={() => handleCopyLink(link.id, link.url)}
-                        className="p-1.5 bg-surface/30 border border-border/80 hover:border-red-500/40 text-text-muted hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer active:scale-90"
-                        title="Copy video link"
-                      >
-                        {copiedId === link.id ? (
-                          <Check className="w-3.5 h-3.5 text-emerald-400" />
-                        ) : (
-                          <Copy className="w-3.5 h-3.5" />
-                        )}
-                      </button>
-
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-1.5 bg-surface/30 border border-border/80 hover:border-red-500/40 text-text-muted hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer active:scale-90"
-                        title="Watch on YouTube"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                      </a>
-                      
-                      <button
-                        onClick={() => handleRemoveVideo(link.id)}
-                        className="p-1.5 bg-surface/30 border border-border/80 hover:border-red-500/50 text-text-muted hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer active:scale-90"
-                        title="Delete video"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                link={link}
+                idx={idx}
+                stats={stats}
+                activeTag={activeTag}
+                activeVideoId={activeVideoId}
+                setActiveVideoId={setActiveVideoId}
+                handleToggleWatched={handleToggleWatched}
+                expandedNotesId={expandedNotesId}
+                setExpandedNotesId={setExpandedNotesId}
+                handleUpdateTag={handleUpdateTag}
+                activeNotesId={activeNotesId}
+                localNotes={localNotes}
+                setLocalNotes={setLocalNotes}
+                handleNotesFocus={handleNotesFocus}
+                handleNotesBlur={handleNotesBlur}
+                handleCopyLink={handleCopyLink}
+                copiedId={copiedId}
+                handleRemoveVideo={handleRemoveVideo}
+              />
             );
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+function YoutubeVideoCard({
+  link,
+  idx,
+  stats,
+  activeTag,
+  activeVideoId,
+  setActiveVideoId,
+  handleToggleWatched,
+  expandedNotesId,
+  setExpandedNotesId,
+  handleUpdateTag,
+  activeNotesId,
+  localNotes,
+  setLocalNotes,
+  handleNotesFocus,
+  handleNotesBlur,
+  handleCopyLink,
+  copiedId,
+  handleRemoveVideo
+}) {
+  const cardRef = useRef(null);
+  const isNotesExpanded = expandedNotesId === link.id;
+
+  const handleMouseMove = (e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const maxTilt = 4;
+    const tiltX = -(y - centerY) / centerY * maxTilt;
+    const tiltY = (x - centerX) / centerX * maxTilt;
+    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-4px)`;
+  };
+
+  const handleMouseLeave = () => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+  };
+
+  return (
+    <div
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ 
+        animationDelay: `${idx * 0.05}s`,
+        transformStyle: 'preserve-3d',
+        willChange: 'transform, opacity'
+      }}
+      className={`animate-card opacity-0 bg-card border ${
+        link.watched ? 'border-border/40 opacity-75' : 'border-border/70 hover:border-white/20'
+      } rounded-2xl shadow-xl hover:shadow-[0_15px_30px_rgba(255,255,255,0.02)] transition-all duration-300 flex flex-col overflow-hidden group premium-card`}
+    >
+      <div className="card-glare-overlay" />
+      
+      {/* Media Player Container */}
+      <div className="aspect-video w-full relative bg-black overflow-hidden border-b border-border/80">
+        {activeVideoId === link.id ? (
+          <iframe
+            title={link.title}
+            src={`https://www.youtube-nocookie.com/embed/${link.videoId}?autoplay=1`}
+            className="absolute inset-0 w-full h-full border-0 z-10"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        ) : (
+          /* Video Thumbnail w/ Play Overlay */
+          <div 
+            onClick={() => setActiveVideoId(link.id)}
+            className="absolute inset-0 w-full h-full cursor-pointer overflow-hidden group/thumb z-10"
+          >
+            <img
+              src={link.thumbnailUrl}
+              alt={link.title}
+              className="w-full h-full object-cover group-hover/thumb:scale-105 transition-transform duration-500"
+              onError={(e) => {
+                e.target.src = `https://img.youtube.com/vi/${link.videoId}/mqdefault.jpg`;
+              }}
+            />
+            
+            {/* Dark overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-black/10 group-hover/thumb:via-black/25 transition-colors" />
+            
+            {/* Pulsing Play Button */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="relative flex items-center justify-center">
+                {/* Dial frame */}
+                <div className="absolute w-16 h-16 rounded-full border border-dashed border-red-500/40 opacity-0 group-hover/thumb:opacity-100 group-hover/thumb:scale-110 group-hover/thumb:rotate-45 transition-all duration-300" />
+                
+                <div className="w-12 h-12 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg group-hover/thumb:scale-105 group-hover/thumb:bg-red-500 transition-all duration-300 relative z-10 shadow-red-950/50">
+                  <Play className="w-5 h-5 fill-current ml-0.5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Watch & Tag Headers */}
+            <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none font-mono">
+              <span className={`text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full border ring-2 ${stats.color} shadow-lg backdrop-blur-md`}>
+                {activeTag}
+              </span>
+              <span className="text-[9px] bg-black/60 border border-white/10 text-yellow-400 font-bold px-2 py-0.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-0.5">
+                <Zap className="w-2.5 h-2.5 fill-current" /> {stats.power}
+              </span>
+            </div>
+
+            {/* Watched stamp */}
+            {link.watched && (
+              <div className="absolute bottom-3 left-3 bg-red-600/90 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm pointer-events-none font-mono">
+                <Check className="w-3.5 h-3.5" /> Completed
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Details Section */}
+      <div className="p-5 flex-1 flex flex-col justify-between gap-3.5 bg-surface/20 relative z-10 transform translate-z-[15px]">
+        <div className="min-w-0">
+          <div className="flex items-start justify-between gap-2.5">
+            <h3 className={`font-extrabold text-xs md:text-sm text-text leading-snug line-clamp-2 group-hover:text-red-400 transition-colors duration-200 ${
+              link.watched ? 'line-through text-text-muted' : ''
+            }`}>
+              {link.title}
+            </h3>
+            
+            {/* Completion Toggle */}
+            <button
+              onClick={() => handleToggleWatched(link.id)}
+              className={`p-1.5 rounded-lg border transition-all active:scale-90 cursor-pointer ${
+                link.watched 
+                  ? 'bg-red-500/20 border-red-500/40 text-red-400 font-bold' 
+                  : 'bg-surface/30 border-border/80 text-text-muted hover:text-text'
+              }`}
+              title={link.watched ? 'Mark unwatched' : 'Mark watched'}
+            >
+              <CheckCircle className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <p className="text-[10px] text-text-dim font-bold mt-1.5 truncate flex items-center gap-1.5 font-mono">
+            <span className="w-1.5 h-1.5 bg-red-500/70 rounded-full animate-pulse-dot" /> {link.authorName}
+          </p>
+        </div>
+
+        {/* Expandable Study Notes Panel */}
+        <div className="flex flex-col gap-2 font-mono">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => setExpandedNotesId(isNotesExpanded ? null : link.id)}
+              className={`text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-colors ${
+                link.notes ? 'text-red-400 hover:text-red-300' : 'text-text-muted hover:text-text'
+              }`}
+            >
+              <FileText className="w-3 h-3" />
+              <span>Notes {link.notes ? '(Active)' : ''}</span>
+            </button>
+
+            {/* Manual Tag Override */}
+            <div className="flex items-center gap-1">
+              <Bookmark className="w-3 h-3 text-text-dim" />
+              <select
+                value={link.customTag || 'auto'}
+                onChange={(e) => handleUpdateTag(link.id, e.target.value === 'auto' ? '' : e.target.value)}
+                className="bg-transparent border-0 text-[9px] text-text-muted hover:text-text font-bold outline-none cursor-pointer"
+              >
+                <option value="auto">Tag: Auto</option>
+                <option value="Ambient">Ambient</option>
+                <option value="Brain-Up">Brain-Up</option>
+                <option value="Cosmos">Cosmos</option>
+                <option value="Feed Item">Feed Item</option>
+              </select>
+            </div>
+          </div>
+
+          {isNotesExpanded && (
+            <textarea
+              value={activeNotesId === link.id ? localNotes : link.notes || ''}
+              onFocus={() => handleNotesFocus(link.id, link.notes)}
+              onBlur={() => handleNotesBlur(link.id)}
+              onChange={(e) => setLocalNotes(e.target.value)}
+              placeholder="Write study notes or timestamps..."
+              className="w-full bg-bg/40 border border-border/80 rounded-xl p-2.5 text-xs text-text placeholder-text-dim resize-none h-20 outline-none focus:border-red-500/50 font-sans"
+            />
+          )}
+        </div>
+
+        {/* Footer Controls & Stats */}
+        <div className="flex items-center justify-between pt-3.5 border-t border-border/60 mt-auto font-mono">
+          <span className="text-[9px] text-text-dim uppercase tracking-widest font-semibold">
+            NODE {idx + 1} // {new Date(link.addedAt).toLocaleDateString()}
+          </span>
+          
+          <div className="flex items-center gap-2">
+            {/* Copy Link */}
+            <button
+              onClick={() => handleCopyLink(link.id, link.url)}
+              className="p-1.5 bg-surface/30 border border-border/80 hover:border-red-500/40 text-text-muted hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer active:scale-90"
+              title="Copy video link"
+            >
+              {copiedId === link.id ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+            </button>
+
+            <a
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 bg-surface/30 border border-border/80 hover:border-red-500/40 text-text-muted hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer active:scale-90"
+              title="Watch on YouTube"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+            </a>
+            
+            <button
+              onClick={() => handleRemoveVideo(link.id)}
+              className="p-1.5 bg-surface/30 border border-border/80 hover:border-red-500/50 text-text-muted hover:text-red-400 rounded-xl transition-all duration-200 cursor-pointer active:scale-90"
+              title="Delete video"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

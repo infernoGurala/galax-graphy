@@ -3,6 +3,8 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
 import { useStore } from '../store/useStore';
 import { ExcalidrawNode, PluginBlockNode, SlashCommand, getSuggestionItems } from './CustomExtensions';
 
@@ -24,6 +26,7 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuRef = useRef(null);
+  const editorRef = useRef(null);
   const saveTimeoutRef = useRef(null);
 
   useEffect(() => {
@@ -31,6 +34,49 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
       if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
     };
   }, []);
+
+  const handleSelectionOrTextUpdate = (editor) => {
+    const { selection } = editor.state;
+    const { $from, empty } = selection;
+
+    if (!empty) {
+      setMenuState(prev => ({ ...prev, show: false }));
+      return;
+    }
+
+    const textBefore = $from.parent.textBetween(Math.max(0, $from.parentOffset - 20), $from.parentOffset, null, '\n');
+    const match = textBefore.match(/\/(\w*)$/);
+
+    if (match) {
+      const query = match[1];
+      const pos = $from.pos - query.length - 1;
+      
+      try {
+        const coords = editor.view.coordsAtPos(pos);
+        let x = coords.left;
+        let y = coords.bottom;
+
+        if (editorRef.current) {
+          const rect = editorRef.current.getBoundingClientRect();
+          x = coords.left - rect.left;
+          y = coords.bottom - rect.top;
+        }
+
+        setMenuState({
+          show: true,
+          x,
+          y,
+          query,
+          range: { from: pos, to: $from.pos }
+        });
+        setSelectedIndex(0);
+      } catch (err) {
+        console.warn('Failed to calculate cursor coordinates:', err);
+      }
+    } else {
+      setMenuState(prev => ({ ...prev, show: false }));
+    }
+  };
 
   // Setup the TipTap Editor
   const editor = useEditor({
@@ -42,6 +88,10 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
       }),
       Link.configure({
         openOnClick: false,
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
       }),
       ExcalidrawNode,
       PluginBlockNode,
@@ -126,40 +176,7 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
     };
   }, [editor, currentWorkspaceId, currentNoteId, createCanvas, savePluginData]);
 
-  const handleSelectionOrTextUpdate = (editor) => {
-    const { selection } = editor.state;
-    const { $from, empty } = selection;
 
-    if (!empty) {
-      setMenuState(prev => ({ ...prev, show: false }));
-      return;
-    }
-
-    const textBefore = $from.parent.textBetween(Math.max(0, $from.parentOffset - 20), $from.parentOffset, null, '\n');
-    const match = textBefore.match(/\/(\w*)$/);
-
-    if (match) {
-      const query = match[1];
-      const pos = $from.pos - query.length - 1;
-      
-      try {
-        const coords = editor.view.coordsAtPos(pos);
-        
-        setMenuState({
-          show: true,
-          x: coords.left + window.scrollX,
-          y: coords.bottom + window.scrollY,
-          query,
-          range: { from: pos, to: $from.pos }
-        });
-        setSelectedIndex(0);
-      } catch (err) {
-        console.warn('Failed to calculate cursor coordinates:', err);
-      }
-    } else {
-      setMenuState(prev => ({ ...prev, show: false }));
-    }
-  };
 
   const menuItems = getSuggestionItems({ query: menuState.query });
 
@@ -209,7 +226,7 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
   }, [menuState.show]);
 
   return (
-    <div className="w-full relative py-6">
+    <div ref={editorRef} className="w-full relative py-6">
       <EditorContent editor={editor} className="font-sans text-text leading-relaxed select-text" />
 
       {menuState.show && menuItems.length > 0 && (

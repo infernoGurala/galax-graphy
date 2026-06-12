@@ -39,16 +39,19 @@ export default function ConfirmationModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans select-none animate-in fade-in duration-150">
+    <div className="fixed inset-0 bg-black/65 backdrop-blur-sm flex items-center justify-center z-[100] p-4 font-sans select-none animate-in fade-in duration-150">
       <div 
-        className="w-full max-w-sm bg-surface border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        className="w-full max-w-sm bg-card/70 border border-border/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header bar with accent indicator */}
-        <div className={`h-[3px] w-full ${isDestructive ? 'bg-red-500' : 'bg-accent'}`} />
+        {/* Header bar with thin accent indicator */}
+        <div className={`h-[2px] w-full ${isDestructive ? 'bg-red-500' : 'bg-white/60'}`} />
 
-        <div className="p-6 flex flex-col gap-3">
-          <h2 className="text-sm font-extrabold uppercase tracking-wider text-text">
+        <div className="p-6 flex flex-col gap-3.5">
+          <span className="text-[9px] font-mono font-bold text-text-dim uppercase tracking-[0.15em]">
+            [Confirm Action]
+          </span>
+          <h2 className="text-base font-extrabold tracking-tight text-text">
             {title}
           </h2>
           <p className="text-xs text-text-muted leading-relaxed font-medium">
@@ -57,11 +60,11 @@ export default function ConfirmationModal() {
         </div>
 
         {/* Buttons footer */}
-        <div className="bg-bg border-t border-border px-6 py-4 flex justify-end gap-2.5">
+        <div className="bg-surface/50 border-t border-border/60 px-6 py-4.5 flex justify-end gap-2.5">
           <button
             type="button"
             onClick={hideConfirm}
-            className="px-3.5 py-2 border border-border hover:border-text-muted text-text-muted hover:text-text text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer active:scale-95 outline-none focus:border-text-muted"
+            className="px-4 py-2 border border-border/80 hover:border-text text-text-muted hover:text-text text-[9px] font-bold uppercase tracking-wider rounded-xl transition-all duration-150 cursor-pointer active:scale-95 outline-none bg-surface/30 hover:bg-surface"
           >
             {cancelLabel}
           </button>
@@ -70,10 +73,10 @@ export default function ConfirmationModal() {
             ref={confirmButtonRef}
             type="button"
             onClick={handleConfirm}
-            className={`px-3.5 py-2 text-white text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all duration-150 cursor-pointer active:scale-95 outline-none ${
+            className={`px-4 py-2 text-[9px] font-bold uppercase tracking-wider rounded-xl transition-all duration-150 cursor-pointer active:scale-95 outline-none border-none ${
               isDestructive 
-                ? 'bg-red-600 hover:bg-red-500 focus:ring-2 focus:ring-red-500/35' 
-                : 'bg-accent hover:bg-accent-hover focus:ring-2 focus:ring-accent/35'
+                ? 'bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-950/20' 
+                : 'bg-white hover:bg-white/90 text-black shadow-md shadow-white/5 font-extrabold'
             }`}
           >
             {confirmLabel}

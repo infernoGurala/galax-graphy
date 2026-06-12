@@ -134,6 +134,18 @@ export const getSuggestionItems = ({ query }) => {
       },
     },
     {
+      title: 'Task List',
+      description: 'Create a list of checkable tasks',
+      command: ({ editor, range }) => {
+        editor
+          .chain()
+          .focus()
+          .deleteRange(range)
+          .toggleTaskList()
+          .run();
+      },
+    },
+    {
       title: 'Code Block',
       description: 'Create a pre-formatted code container',
       command: ({ editor, range }) => {

@@ -33,6 +33,8 @@ export const useStore = create((set, get) => ({
   currentNoteId: null,
   currentCanvasId: null,
   currentScreen: 'workspaces', // 'workspaces', 'folders', 'note', 'canvas'
+  workspaceViewMode: localStorage.getItem('galax_workspace_view_mode') || 'dashboard',
+  folderViewMode: localStorage.getItem('galax_folder_view_mode') || 'dashboard',
 
   // Custom Confirmation Dialog State
   confirmDialog: null, // { title: string, message: string, confirmLabel: string, cancelLabel: string, isDestructive: boolean, onConfirm: () => void }
@@ -115,6 +117,16 @@ export const useStore = create((set, get) => ({
 
   showConfirm: (dialog) => set({ confirmDialog: dialog }),
   hideConfirm: () => set({ confirmDialog: null }),
+
+  setWorkspaceViewMode: (mode) => {
+    localStorage.setItem('galax_workspace_view_mode', mode);
+    set({ workspaceViewMode: mode });
+  },
+
+  setFolderViewMode: (mode) => {
+    localStorage.setItem('galax_folder_view_mode', mode);
+    set({ folderViewMode: mode });
+  },
 
   // --- Data Loading & Syncing ---
   loadData: async () => {
@@ -670,6 +682,15 @@ export const useStore = create((set, get) => ({
   getItemPosition: (contextId, itemId) => {
     const record = get().getPluginData('spatial-layout', contextId, 'positions');
     return record?.positions?.[itemId] || null;
+  },
+
+  saveGroups: async (contextId, groups) => {
+    await get().savePluginData('spatial-layout', 'groups', contextId, { groups });
+  },
+
+  getGroups: (contextId) => {
+    const record = get().getPluginData('spatial-layout', contextId, 'groups');
+    return record?.groups || [];
   },
 
   getWorkspaceType: (workspaceId) => {

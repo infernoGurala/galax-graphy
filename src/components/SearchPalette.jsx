@@ -117,16 +117,16 @@ export default function SearchPalette({ isOpen, onClose }) {
 
   return (
     <div 
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50 font-sans p-4"
+      className="fixed inset-0 bg-black/65 backdrop-blur-sm flex items-start justify-center pt-[15vh] z-50 font-sans p-4 select-none animate-in fade-in duration-150"
       onClick={onClose}
     >
       <div 
-        className="w-full max-w-lg bg-surface border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-lg bg-card/70 border border-border/80 rounded-2xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Search Input */}
-        <div className="border-b border-border p-4 flex items-center gap-3">
-          <span className="text-[10px] uppercase font-bold text-text-muted tracking-widest select-none">SEARCH</span>
+        <div className="border-b border-border/60 p-4.5 flex items-center gap-3 bg-surface/30">
+          <span className="text-[9px] font-mono font-bold text-text-muted tracking-widest select-none bg-surface border border-border/60 px-2 py-0.5 rounded">SEARCH</span>
           <input
             ref={inputRef}
             type="text"
@@ -137,17 +137,17 @@ export default function SearchPalette({ isOpen, onClose }) {
               setSelectedIndex(0);
             }}
             onKeyDown={handleKeyDown}
-            className="flex-1 bg-transparent text-text text-sm outline-none placeholder:text-text-muted border-none p-0 focus:ring-0"
+            className="flex-1 bg-transparent text-text text-sm outline-none placeholder:text-text-dim border-none p-0 focus:ring-0 font-sans"
           />
         </div>
 
         {/* Results List */}
         <div 
           ref={listRef}
-          className="flex-1 overflow-y-auto max-h-[300px] p-2"
+          className="flex-1 overflow-y-auto max-h-[300px] p-2.5 space-y-1"
         >
           {filteredItems.length === 0 ? (
-            <div className="p-8 text-center text-text-muted text-xs uppercase tracking-wider select-none">
+            <div className="p-8 text-center text-text-dim text-[10px] font-mono uppercase tracking-wider select-none">
               No matching elements found
             </div>
           ) : (
@@ -158,27 +158,29 @@ export default function SearchPalette({ isOpen, onClose }) {
                   key={item.id}
                   onClick={() => handleSelect(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`p-3 rounded-lg flex items-center justify-between cursor-pointer select-none transition-all duration-100 ${
-                    isSelected ? 'bg-accent/10 border border-accent/30' : 'border border-transparent hover:bg-bg/50'
+                  className={`p-3 rounded-xl flex items-center justify-between cursor-pointer select-none transition-all duration-150 border ${
+                    isSelected 
+                      ? 'bg-white/5 border-white/10 text-white shadow-md shadow-white/5 translate-x-1' 
+                      : 'border-transparent hover:bg-surface/40 text-text-muted'
                   }`}
                 >
-                  <div className="flex flex-col gap-1 min-w-0">
-                    <span className={`font-bold text-xs truncate transition-colors duration-100 ${
-                      isSelected ? 'text-accent' : 'text-text'
+                  <div className="flex flex-col gap-0.5 min-w-0">
+                    <span className={`font-bold text-xs truncate transition-colors duration-150 ${
+                      isSelected ? 'text-white' : 'text-text'
                     }`}>
                       {item.name || 'Untitled'}
                     </span>
-                    <span className="text-[9px] text-text-muted uppercase tracking-wider font-semibold truncate">
+                    <span className="text-[9px] text-text-dim uppercase tracking-wider font-semibold truncate font-mono">
                       {getPath(item)}
                     </span>
                   </div>
 
-                  <span className={`text-[8px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded border ${
+                  <span className={`text-[8px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded border transition-all ${
                     item.type === 'canvas' 
-                      ? 'text-accent border-accent/20 bg-accent/5' 
+                      ? 'text-white border-white/20 bg-white/5' 
                       : item.type === 'folder'
                       ? 'text-yellow-500 border-yellow-500/20 bg-yellow-500/5'
-                      : 'text-text-muted border-border bg-bg'
+                      : 'text-text-muted border-border bg-surface'
                   }`}>
                     {item.type}
                   </span>
@@ -189,7 +191,7 @@ export default function SearchPalette({ isOpen, onClose }) {
         </div>
 
         {/* Help footer */}
-        <div className="bg-bg border-t border-border px-4 py-2.5 flex items-center justify-between text-[8px] uppercase tracking-wider text-text-muted font-bold select-none">
+        <div className="bg-surface/65 border-t border-border/60 px-4.5 py-3 flex items-center justify-between text-[8px] uppercase tracking-widest text-text-dim font-bold font-mono select-none">
           <span>Arrows &darr;&uarr; to Navigate · Enter to Open</span>
           <span>Esc to Close</span>
         </div>

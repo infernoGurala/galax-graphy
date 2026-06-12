@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
 
 export default function PasswordGate() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const login = useStore(state => state.login);
+  const cardRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -17,38 +18,80 @@ export default function PasswordGate() {
     }
   };
 
+  const handleMouseMove = (e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    card.style.setProperty('--mouse-x', `${x}px`);
+    card.style.setProperty('--mouse-y', `${y}px`);
+
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const maxTilt = 5;
+    const tiltX = -(y - centerY) / centerY * maxTilt;
+    const tiltY = (x - centerX) / centerX * maxTilt;
+    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-2px)`;
+  };
+
+  const handleMouseLeave = () => {
+    const card = cardRef.current;
+    if (!card) return;
+    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-bg px-4 select-none">
-      <div className="w-full max-w-sm p-8 bg-surface border border-border rounded-xl shadow-2xl flex flex-col items-center transition-all duration-300">
-        <h2 className="text-xl font-bold text-text mb-2 tracking-wide font-sans">
+    <div className="flex flex-col items-center justify-center min-h-[90vh] relative z-10 px-4 select-none">
+      <div 
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="w-full max-w-[380px] p-8 bg-card border border-border/80 rounded-2xl shadow-2xl flex flex-col items-center premium-card backdrop-blur-xl transition-[border-color,background-color,transform] duration-200"
+      >
+        {/* Card spotlight reflection shine */}
+        <div className="card-glare-overlay" />
+
+        {/* Identity tag */}
+        <span className="text-[9px] font-mono text-text-dim uppercase tracking-[0.15em] mb-4 select-none">
+          [Authorization Required]
+        </span>
+
+        <h2 className="text-2xl font-black text-text mb-2 tracking-tight font-sans text-center bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
           Workspace Gate
         </h2>
-        <p className="text-xs text-text-muted text-center mb-8 font-sans">
-          Enter authorization credentials to access notes and boards
+        <p className="text-xs text-text-muted text-center mb-8 font-sans leading-relaxed px-2">
+          Verify credentials to access secure note archives and canvas directories.
         </p>
 
-        <form onSubmit={handleSubmit} className="w-full">
-          <input
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setError(false);
-            }}
-            className={`w-full px-4 py-3 bg-bg border ${
-              error ? 'border-red-500 focus:border-red-500' : 'border-border focus:border-accent'
-            } rounded-lg text-text text-center text-sm outline-none transition-all duration-200 placeholder:text-text-muted font-mono`}
-            autoFocus
-          />
+        <form onSubmit={handleSubmit} className="w-full relative z-10">
+          <div className="relative">
+            <input
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(false);
+              }}
+              className={`w-full px-4 py-3 text-text text-center text-sm placeholder:text-text-dim font-mono input-glass ${
+                error 
+                  ? 'border-red-500/80 focus:border-red-500/90' 
+                  : ''
+              }`}
+              autoFocus
+            />
+          </div>
+          
           {error && (
-            <p className="text-xs text-red-500 text-center mt-2 font-sans">
+            <p className="text-[10px] text-red-400 text-center mt-2.5 font-mono uppercase tracking-wider animate-pulse">
               Invalid credentials. Try again.
             </p>
           )}
+
           <button
             type="submit"
-            className="w-full mt-5 py-3 px-4 bg-accent hover:bg-accent-hover text-white rounded-lg text-sm font-semibold tracking-wide transition-all duration-200 cursor-pointer font-sans"
+            className="w-full mt-6 h-11 btn-glass text-xs font-black uppercase tracking-widest"
           >
             Authenticate
           </button>

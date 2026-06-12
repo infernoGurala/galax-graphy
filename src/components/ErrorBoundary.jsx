@@ -16,9 +16,10 @@ export default class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      const label = this.props.label || 'Component Error';
       return (
         <div className="fixed bottom-4 right-4 bg-red-900 border border-red-500/30 text-red-200 text-xs p-3.5 rounded-lg shadow-2xl z-50 max-w-sm backdrop-blur-md">
-          <p className="font-bold uppercase tracking-wider text-[10px] text-red-400">SearchPalette Error</p>
+          <p className="font-bold uppercase tracking-wider text-[10px] text-red-400">{label}</p>
           <p className="opacity-95 mt-1 font-mono text-[9px] break-all">{this.state.error?.toString()}</p>
           <button 
             onClick={() => this.setState({ hasError: false, error: null })}
