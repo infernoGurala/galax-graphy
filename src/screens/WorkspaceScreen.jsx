@@ -758,7 +758,7 @@ export default function WorkspaceScreen() {
               <span className="w-1.5 h-1.5 bg-[#10b981] rounded-full animate-pulse-dot" />
               <span>Inferno Gurala // {time}</span>
             </div>
-            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-white to-white/72 bg-clip-text text-transparent animate-logo-glide">
+            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent animate-logo-glide">
               GALAX GRAPHY
             </h1>
           </header>
@@ -814,10 +814,10 @@ export default function WorkspaceScreen() {
 
                                   <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
                                     <div className="flex items-center gap-1.5">
-                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-white/60 transition-colors cursor-grab active:cursor-grabbing" />
+                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing" />
                                       <span>{idxStr}</span>
                                     </div>
-                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-white/10 bg-white/5 text-white/70">
+                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-border bg-surface/30 text-text-muted">
                                       Workspace
                                     </span>
                                   </div>
@@ -825,7 +825,7 @@ export default function WorkspaceScreen() {
                                     <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
                                       {ws.name}
                                     </h3>
-                                    <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                                    <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
                                   </div>
                                   <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
                                     Multi-layer document studio containing text files, folders, and standalone graphics boards.
@@ -877,10 +877,10 @@ export default function WorkspaceScreen() {
 
                                   <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
                                     <div className="flex items-center gap-1.5">
-                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-white/60 transition-colors cursor-grab active:cursor-grabbing" />
+                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing" />
                                       <span>{idxStr}</span>
                                     </div>
-                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-red-500/10 bg-red-500/5 text-red-400">
+                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-red-500/20 bg-red-500/5 text-red-400">
                                       YouTube
                                     </span>
                                   </div>
@@ -888,7 +888,7 @@ export default function WorkspaceScreen() {
                                     <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
                                       {ws.name}
                                     </h3>
-                                    <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                                    <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
                                   </div>
                                   <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
                                     Integrated YouTube workspace with interactive video player, custom notes manager, and progress trackers.
@@ -988,7 +988,7 @@ export default function WorkspaceScreen() {
               } else if (isMatched) {
                 cardStyle.transform = 'scale(1.01) translateY(-2px)';
                 cardStyle.opacity = 1;
-                extraClass = 'border-white/30 shadow-[0_15px_40px_rgba(255,255,255,0.08)] ring-1 ring-white/20';
+                extraClass = 'border-accent/40 shadow-xl shadow-accent/5 ring-1 ring-accent/30';
               } else {
                 cardStyle.transform = 'scale(0)';
                 cardStyle.opacity = 0;
@@ -1032,7 +1032,7 @@ export default function WorkspaceScreen() {
                 if (groupWorkspaces.length === 0) return null;
 
                 const bullets = {
-                  default: 'bg-white/40',
+                  default: 'bg-text/40',
                   red: 'bg-red-500',
                   blue: 'bg-blue-500',
                   green: 'bg-emerald-500',
@@ -1044,7 +1044,7 @@ export default function WorkspaceScreen() {
                     <div className="border-b border-border/40 pb-2 mb-6 flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${bullets[group.color || 'default']}`} />
                       <h2 className="text-xs font-black uppercase tracking-wider font-mono text-text">{group.title}</h2>
-                      <span className="text-[9px] text-text-muted font-bold bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-lg ml-1 font-mono">
+                      <span className="text-[9px] text-text-muted font-bold bg-surface border border-border px-2.5 py-0.5 rounded-lg ml-1 font-mono">
                         {groupWorkspaces.length}
                       </span>
                     </div>
@@ -1087,9 +1087,9 @@ export default function WorkspaceScreen() {
                 return (
                   <div className="animate-in fade-in duration-200">
                     <div className="border-b border-border/40 pb-2 mb-6 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-text/20" />
                       <h2 className="text-xs font-black uppercase tracking-wider font-mono text-text-muted">Unassigned</h2>
-                      <span className="text-[9px] text-text-muted font-bold bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-lg ml-1 font-mono">
+                      <span className="text-[9px] text-text-muted font-bold bg-surface border border-border px-2.5 py-0.5 rounded-lg ml-1 font-mono">
                         {unassignedWorkspaces.length}
                       </span>
                     </div>
@@ -1190,10 +1190,10 @@ export default function WorkspaceScreen() {
                                         className="bg-bg border border-border text-text text-xs rounded-lg px-2.5 py-1.5 outline-none font-sans"
                                         autoFocus
                                       />
-                                      <button onClick={(e) => handleSaveRename(e, ws.id)} className="px-3 py-1 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm shadow-white/5">
+                                      <button onClick={(e) => handleSaveRename(e, ws.id)} className="px-3 py-1 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm">
                                         Save
                                       </button>
-                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-bg cursor-pointer transition-all">
+                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-surface cursor-pointer transition-all">
                                         Cancel
                                       </button>
                                     </div>
@@ -1258,7 +1258,7 @@ export default function WorkspaceScreen() {
                           <tr className="bg-surface/20 border-y border-border/10">
                             <td colSpan="4" className="py-2 px-6">
                               <div className="flex items-center gap-2 select-none">
-                                <span className="w-2 h-2 rounded-full bg-white/10" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-text/20" />
                                 <span className="text-[10px] font-black uppercase tracking-wider font-mono text-text-muted">Unassigned</span>
                               </div>
                             </td>
@@ -1282,10 +1282,10 @@ export default function WorkspaceScreen() {
                                         className="bg-bg border border-border text-text text-xs rounded-lg px-2.5 py-1.5 outline-none font-sans"
                                         autoFocus
                                       />
-                                      <button onClick={(e) => handleSaveRename(e, ws.id)} className="px-3 py-1 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm shadow-white/5">
+                                      <button onClick={(e) => handleSaveRename(e, ws.id)} className="px-3 py-1 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm">
                                         Save
                                       </button>
-                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-bg cursor-pointer transition-all">
+                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-surface cursor-pointer transition-all">
                                         Cancel
                                       </button>
                                     </div>
@@ -1361,7 +1361,7 @@ export default function WorkspaceScreen() {
                 type="button"
                 onClick={() => setCreationType('workspace')}
                 className={`flex-1 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                  creationType === 'workspace' ? 'bg-white text-black' : 'text-text-muted hover:text-text'
+                  creationType === 'workspace' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
                 }`}
               >
                 Workspace
@@ -1370,7 +1370,7 @@ export default function WorkspaceScreen() {
                 type="button"
                 onClick={() => setCreationType('group')}
                 className={`flex-1 py-1 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                  creationType === 'group' ? 'bg-white text-black' : 'text-text-muted hover:text-text'
+                  creationType === 'group' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
                 }`}
               >
                 Group
@@ -1401,8 +1401,8 @@ export default function WorkspaceScreen() {
                     onClick={() => setWorkspaceType('regular')}
                     className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
                       workspaceType === 'regular' 
-                        ? 'border-white/20 bg-white/5 text-white' 
-                        : 'border-border hover:border-white/20 text-text-muted hover:text-text'
+                        ? 'border-accent bg-accent/10 text-accent font-extrabold' 
+                        : 'border-border hover:border-accent text-text-muted hover:text-text'
                     }`}
                   >
                     Regular
@@ -1412,8 +1412,8 @@ export default function WorkspaceScreen() {
                     onClick={() => setWorkspaceType('youtube')}
                     className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
                       workspaceType === 'youtube' 
-                        ? 'border-red-500/20 bg-red-500/5 text-red-400' 
-                        : 'border-border hover:border-red-500/20 text-text-muted hover:text-text'
+                        ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold' 
+                        : 'border-border hover:border-red-500 text-text-muted hover:text-text'
                     }`}
                   >
                     YouTube
@@ -1430,9 +1430,9 @@ export default function WorkspaceScreen() {
                       type="button"
                       onClick={() => setGroupColor(color)}
                       className={`w-5 h-5 rounded-full border cursor-pointer transition-all ${
-                        groupColor === color ? 'ring-2 ring-white scale-110' : 'opacity-70 hover:opacity-100'
+                        groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
                       } ${
-                        color === 'default' ? 'bg-white/20 border-white/10' :
+                        color === 'default' ? 'bg-text/20 border-border' :
                         color === 'red' ? 'bg-red-500 border-red-500/10' :
                         color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
                         color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
@@ -1453,7 +1453,7 @@ export default function WorkspaceScreen() {
               </button>
               <button
                 type="submit"
-                className="px-3 py-1.5 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg shadow-white/5 active:scale-95 transition-all cursor-pointer font-sans border-none"
+                className="px-3 py-1.5 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg active:scale-95 transition-all cursor-pointer font-sans border-none"
               >
                 Create
               </button>
@@ -1472,7 +1472,7 @@ export default function WorkspaceScreen() {
                   type="button"
                   onClick={() => setCreationType('workspace')}
                   className={`flex-1 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                    creationType === 'workspace' ? 'bg-white text-black' : 'text-text-muted hover:text-text'
+                    creationType === 'workspace' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
                   }`}
                 >
                   Workspace
@@ -1481,7 +1481,7 @@ export default function WorkspaceScreen() {
                   type="button"
                   onClick={() => setCreationType('group')}
                   className={`flex-1 py-1.5 text-[9px] font-extrabold uppercase tracking-wider rounded transition-all cursor-pointer border-none ${
-                    creationType === 'group' ? 'bg-white text-black' : 'text-text-muted hover:text-text'
+                    creationType === 'group' ? 'bg-text text-bg' : 'text-text-muted hover:text-text'
                   }`}
                 >
                   Group
@@ -1512,8 +1512,8 @@ export default function WorkspaceScreen() {
                       onClick={() => setWorkspaceType('regular')}
                       className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
                         workspaceType === 'regular' 
-                          ? 'border-white/20 bg-white/5 text-white' 
-                          : 'border-border hover:border-white/20 text-text-muted hover:text-text'
+                          ? 'border-accent bg-accent/10 text-accent font-extrabold' 
+                          : 'border-border hover:border-accent text-text-muted hover:text-text'
                       }`}
                     >
                       Regular
@@ -1523,8 +1523,8 @@ export default function WorkspaceScreen() {
                       onClick={() => setWorkspaceType('youtube')}
                       className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${
                         workspaceType === 'youtube' 
-                          ? 'border-red-500/20 bg-red-500/5 text-red-400' 
-                          : 'border-border hover:border-red-500/20 text-text-muted hover:text-text'
+                          ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold' 
+                          : 'border-border hover:border-red-500 text-text-muted hover:text-text'
                       }`}
                     >
                       YouTube
@@ -1541,9 +1541,9 @@ export default function WorkspaceScreen() {
                         type="button"
                         onClick={() => setGroupColor(color)}
                         className={`w-6 h-6 rounded-full border cursor-pointer transition-all ${
-                          groupColor === color ? 'ring-2 ring-white scale-110' : 'opacity-70 hover:opacity-100'
+                          groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
                         } ${
-                          color === 'default' ? 'bg-white/20 border-white/10' :
+                          color === 'default' ? 'bg-text/20 border-border' :
                           color === 'red' ? 'bg-red-500 border-red-500/10' :
                           color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
                           color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
@@ -1564,7 +1564,7 @@ export default function WorkspaceScreen() {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg shadow-white/5 active:scale-95 transition-all cursor-pointer font-sans border-none"
+                  className="px-4 py-2 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg active:scale-95 transition-all cursor-pointer font-sans border-none"
                 >
                   Create
                 </button>
@@ -1621,7 +1621,7 @@ export default function WorkspaceScreen() {
               localStorage.setItem('galax_workspace_view_mode', 'dashboard');
             }}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'dashboard' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             Dashboard
@@ -1632,7 +1632,7 @@ export default function WorkspaceScreen() {
               localStorage.setItem('galax_workspace_view_mode', 'board');
             }}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'board' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             Board
@@ -1643,7 +1643,7 @@ export default function WorkspaceScreen() {
               localStorage.setItem('galax_workspace_view_mode', 'grid');
             }}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'grid' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             Grid
@@ -1654,7 +1654,7 @@ export default function WorkspaceScreen() {
               localStorage.setItem('galax_workspace_view_mode', 'list');
             }}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'list' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             List
@@ -1664,7 +1664,7 @@ export default function WorkspaceScreen() {
         {/* HUD Create Button */}
         <button
           onClick={handleCreateButtonHUD}
-          className="bg-white hover:bg-white/90 text-black px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-white/5 active:scale-95 flex items-center gap-1 font-sans border-none"
+          className="bg-text hover:opacity-90 text-bg px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-1 font-sans border-none"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New</span>

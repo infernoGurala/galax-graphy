@@ -160,13 +160,13 @@ export default function SearchPalette({ isOpen, onClose }) {
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={`p-3 rounded-xl flex items-center justify-between cursor-pointer select-none transition-all duration-150 border ${
                     isSelected 
-                      ? 'bg-white/5 border-white/10 text-white shadow-md shadow-white/5 translate-x-1' 
-                      : 'border-transparent hover:bg-surface/40 text-text-muted'
+                      ? 'bg-accent/10 border-accent/25 text-accent shadow-md shadow-accent/5 translate-x-1' 
+                      : 'border-transparent hover:bg-surface/45 text-text-muted'
                   }`}
                 >
                   <div className="flex flex-col gap-0.5 min-w-0">
                     <span className={`font-bold text-xs truncate transition-colors duration-150 ${
-                      isSelected ? 'text-white' : 'text-text'
+                      isSelected ? 'text-accent' : 'text-text'
                     }`}>
                       {item.name || 'Untitled'}
                     </span>
@@ -177,7 +177,7 @@ export default function SearchPalette({ isOpen, onClose }) {
 
                   <span className={`text-[8px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded border transition-all ${
                     item.type === 'canvas' 
-                      ? 'text-white border-white/20 bg-white/5' 
+                      ? 'text-accent border-accent/25 bg-accent/10' 
                       : item.type === 'folder'
                       ? 'text-yellow-500 border-yellow-500/20 bg-yellow-500/5'
                       : 'text-text-muted border-border bg-surface'

@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medium-style Rich Text Editor</title>
+  
+  <!-- Google Fonts for custom font dropdown choices -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inconsolata:wght@300;400;500;700&family=Outfit:wght@300;400;500;600&family=Roboto+Slab:wght@300;400;500;700&family=Slabo+13px&family=Sofia+Sans:wght@300;400;500;700&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+  
+  <!-- Quill core and snow styles -->
+  <link href="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css" rel="stylesheet" />
+  
+  <!-- KaTeX for formulas -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+  <style>
+    /* Design Tokens */
+    :root {
+      --color-bg: #ffffff;
+      --color-text: #21201c;
+      --color-border: #e6e6e6;
+      --color-muted: #555555;
+      --color-active-blue: #0070f3;
+      
+      --font-sailec: 'Sailec Light', 'Sailec', 'Outfit', sans-serif;
+      --font-sofia: 'Sofia Pro', 'Sofia Sans', sans-serif;
+      --font-slabor: 'Slabo 13px', serif;
+      --font-roboto: 'Roboto Slab', serif;
+      --font-inconsolata: 'Inconsolata', monospace;
+      --font-ubuntu: 'Ubuntu Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-sailec);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Custom Minimalist Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+
+    /* Selection Color */
+    ::selection {
+      background-color: #f4f0ea;
+    }
+
+    /* Sticky Header at Top */
+    #header-container {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background-color: var(--color-bg);
+      border-bottom: 1px solid var(--color-border);
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    #toolbar-wrapper {
+      width: 100%;
+      max-width: 760px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+    }
+
+    /* Minimalist Toolbar Override */
+    #quill-toolbar {
+      width: 100%;
+      border: none !important;
+      background: transparent !important;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 14px;
+      padding: 0 !important;
+    }
+
+    /* Minimal Gray #555 Icons */
+    .ql-snow.ql-toolbar button, 
+    .ql-snow .ql-toolbar button {
+      color: var(--color-muted) !important;
+      width: 24px !important;
+      height: 24px !important;
+      padding: 0 !important;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.15s ease, opacity 0.15s ease;
+    }
+
+    /* Custom smaller SVG icons size */
+    .ql-snow.ql-toolbar button svg,
+    .ql-snow .ql-toolbar button svg {
+      width: 15px !important;
+      height: 15px !important;
+    }
+
+    .ql-snow.ql-toolbar button .ql-stroke,
+    .ql-snow .ql-toolbar button .ql-stroke {
+      stroke: var(--color-muted) !important;
+      stroke-width: 1.5px !important;
+      transition: stroke 0.15s ease;
+    }
+
+    .ql-snow.ql-toolbar button .ql-fill,
+    .ql-snow .ql-toolbar button .ql-fill {
+      fill: var(--color-muted) !important;
+      transition: fill 0.15s ease;
+    }
+
+    /* Active, Hover, and Selected States */
+    .ql-snow.ql-toolbar button:hover, 
+    .ql-snow .ql-toolbar button:hover,
+    .ql-snow.ql-toolbar button.ql-active, 
+    .ql-snow .ql-toolbar button.ql-active {
+      color: var(--color-active-blue) !important;
+    }
+
+    .ql-snow.ql-toolbar button:hover .ql-stroke,
+    .ql-snow.ql-toolbar button.ql-active .ql-stroke {
+      stroke: var(--color-active-blue) !important;
+      stroke-width: 2px !important;
+    }
+
+    .ql-snow.ql-toolbar button:hover .ql-fill,
+    .ql-snow.ql-toolbar button.ql-active .ql-fill {
+      fill: var(--color-active-blue) !important;
+    }
+
+    /* Custom fx, </>, Tₓ buttons to use text instead of default icons */
+    .ql-snow.ql-toolbar button.ql-formula,
+    .ql-snow .ql-toolbar button.ql-formula {
+      font-family: var(--font-sailec) !important;
+      font-style: italic !important;
+      font-size: 15px !important;
+      font-weight: 600 !important;
+      width: auto !important;
+      padding: 0 4px !important;
+    }
+    .ql-snow.ql-toolbar button.ql-code-block,
+    .ql-snow .ql-toolbar button.ql-code-block {
+      font-family: var(--font-sailec) !important;
+      font-size: 13px !important;
+      font-weight: 600 !important;
+      width: auto !important;
+      padding: 0 4px !important;
+    }
+    .ql-snow.ql-toolbar button.ql-clean,
+    .ql-snow .ql-toolbar button.ql-clean {
+      font-family: var(--font-sailec) !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      width: auto !important;
+      padding: 0 4px !important;
+    }
+    /* Hide default SVG icons for these text-only buttons */
+    .ql-snow.ql-toolbar button.ql-formula svg,
+    .ql-snow.ql-toolbar button.ql-code-block svg,
+    .ql-snow.ql-toolbar button.ql-clean svg {
+      display: none !important;
+    }
+    /* Set contents */
+    .ql-snow.ql-toolbar button.ql-formula::before {
+      content: 'fₓ';
+    }
+    .ql-snow.ql-toolbar button.ql-code-block::before {
+      content: '</>';
+    }
+    .ql-snow.ql-toolbar button.ql-clean::before {
+      content: 'Tₓ';
+    }
+
+    /* Minimalist Picker Label Dropdowns styling */
+    .ql-snow .ql-picker {
+      color: var(--color-muted) !important;
+      font-family: var(--font-sailec) !important;
+      font-size: 13px !important;
+      font-weight: 500 !important;
+      transition: color 0.15s ease;
+    }
+
+    .ql-snow .ql-picker-label {
+      border: 1px solid transparent !important;
+      border-radius: 4px;
+      padding-left: 6px !important;
+      padding-right: 6px !important;
+      display: inline-flex;
+      align-items: center;
+      height: 26px;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .ql-snow .ql-picker-label::before {
+      line-height: 24px;
+    }
+
+    /* Standard caret style for alignment and others */
+    .ql-snow .ql-picker-label svg {
+      width: 10px !important;
+      height: 10px !important;
+      stroke: currentColor !important;
+      stroke-width: 2px !important;
+      fill: none !important;
+    }
+
+    /* Custom up-down caret SVG only for header and font dropdown labels */
+    .ql-snow .ql-picker.ql-header .ql-picker-label svg,
+    .ql-snow .ql-picker.ql-font .ql-picker-label svg {
+      display: none !important;
+    }
+
+    .ql-snow .ql-picker.ql-header .ql-picker-label::after,
+    .ql-snow .ql-picker.ql-font .ql-picker-label::after {
+      content: '';
+      width: 8px;
+      height: 8px;
+      margin-left: 6px;
+      display: inline-block;
+      vertical-align: middle;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 1L2 4h6zM5 9L2 6h6z' fill='%23555'/%3E%3C/svg%3E");
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      transition: filter 0.15s ease;
+    }
+
+    .ql-snow .ql-picker.ql-header:hover .ql-picker-label::after,
+    .ql-snow .ql-picker.ql-header.ql-expanded .ql-picker-label::after,
+    .ql-snow .ql-picker.ql-font:hover .ql-picker-label::after,
+    .ql-snow .ql-picker.ql-font.ql-expanded .ql-picker-label::after {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 1L2 4h6zM5 9L2 6h6z' fill='%230070f3'/%3E%3C/svg%3E");
+    }
+
+    /* Picker hover border and active color */
+    .ql-snow .ql-picker:hover .ql-picker-label,
+    .ql-snow .ql-picker.ql-expanded .ql-picker-label {
+      border-color: var(--color-border) !important;
+      background-color: var(--color-bg);
+      color: var(--color-active-blue) !important;
+    }
+
+    /* Dropdown Selection Panel */
+    .ql-snow .ql-picker-options {
+      background-color: var(--color-bg) !important;
+      border: 1px solid var(--color-border) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+      padding: 6px !important;
+      margin-top: 4px !important;
+    }
+
+    .ql-snow .ql-picker-item {
+      padding: 6px 12px !important;
+      border-radius: 4px !important;
+      transition: background-color 0.15s ease, color 0.15s ease;
+    }
+
+    .ql-snow .ql-picker-item:hover,
+    .ql-snow .ql-picker-item.ql-selected {
+      background-color: var(--color-border) !important;
+      color: var(--color-active-blue) !important;
+    }
+
+    /* Font picker custom widths */
+    .ql-snow .ql-picker.ql-font {
+      width: 120px !important;
+    }
+
+    /* Font labels display names and styling inside the list */
+    .ql-snow .ql-picker.ql-font .ql-picker-label:not([data-value])::before {
+      content: 'Sailec Light';
+      font-family: var(--font-sailec) !important;
+      font-weight: 300 !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item:not([data-value])::before {
+      content: 'Sailec Light';
+      font-family: var(--font-sailec) !important;
+      font-weight: 300 !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item:not([data-value]) {
+      font-family: var(--font-sailec) !important;
+      font-weight: 300 !important;
+    }
+
+    /* Georgia */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"]::before {
+      content: 'Georgia';
+      font-family: Georgia, serif !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"]::before {
+      content: 'Georgia';
+      font-family: Georgia, serif !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="georgia"] {
+      font-family: Georgia, serif !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="georgia"] {
+      font-family: Georgia, serif !important;
+    }
+
+    /* Sofia Pro */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="sofia"]::before {
+      content: 'Sofia Pro';
+      font-family: var(--font-sofia) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="sofia"]::before {
+      content: 'Sofia Pro';
+      font-family: var(--font-sofia) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="sofia"] {
+      font-family: var(--font-sofia) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="sofia"] {
+      font-family: var(--font-sofia) !important;
+    }
+
+    /* Slabo 13px */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="slabo"]::before {
+      content: 'Slabo 13px';
+      font-family: var(--font-slabor) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="slabo"]::before {
+      content: 'Slabo 13px';
+      font-family: var(--font-slabor) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="slabo"] {
+      font-family: var(--font-slabor) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="slabo"] {
+      font-family: var(--font-slabor) !important;
+    }
+
+    /* Roboto Slab */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="roboto-slab"]::before {
+      content: 'Roboto Slab';
+      font-family: var(--font-roboto) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto-slab"]::before {
+      content: 'Roboto Slab';
+      font-family: var(--font-roboto) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="roboto-slab"] {
+      font-family: var(--font-roboto) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="roboto-slab"] {
+      font-family: var(--font-roboto) !important;
+    }
+
+    /* Inconsolata */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="inconsolata"]::before {
+      content: 'Inconsolata';
+      font-family: var(--font-inconsolata) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="inconsolata"]::before {
+      content: 'Inconsolata';
+      font-family: var(--font-inconsolata) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="inconsolata"] {
+      font-family: var(--font-inconsolata) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="inconsolata"] {
+      font-family: var(--font-inconsolata) !important;
+    }
+
+    /* Ubuntu Mono */
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="ubuntu-mono"]::before {
+      content: 'Ubuntu Mono';
+      font-family: var(--font-ubuntu) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="ubuntu-mono"]::before {
+      content: 'Ubuntu Mono';
+      font-family: var(--font-ubuntu) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-label[data-value="ubuntu-mono"] {
+      font-family: var(--font-ubuntu) !important;
+    }
+    .ql-snow .ql-picker.ql-font .ql-picker-item[data-value="ubuntu-mono"] {
+      font-family: var(--font-ubuntu) !important;
+    }
+
+    /* Header labels display names */
+    .ql-snow .ql-picker.ql-header {
+      width: 90px !important;
+    }
+    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="1"]::before,
+    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="1"]::before {
+      content: 'Heading 1';
+    }
+    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="2"]::before,
+    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="2"]::before {
+      content: 'Heading 2';
+    }
+    .ql-snow .ql-picker.ql-header .ql-picker-label[data-value="3"]::before,
+    .ql-snow .ql-picker.ql-header .ql-picker-item[data-value="3"]::before {
+      content: 'Heading 3';
+    }
+    .ql-snow .ql-picker.ql-header .ql-picker-label:not([data-value])::before,
+    .ql-snow .ql-picker.ql-header .ql-picker-item:not([data-value])::before {
+      content: 'Normal';
+    }
+
+    /* Whitelisted font formats classes configuration */
+    .ql-font-georgia {
+      font-family: Georgia, serif !important;
+    }
+    .ql-font-sofia {
+      font-family: var(--font-sofia) !important;
+    }
+    .ql-font-slabo {
+      font-family: var(--font-slabor) !important;
+    }
+    .ql-font-roboto-slab {
+      font-family: var(--font-roboto) !important;
+    }
+    .ql-font-inconsolata {
+      font-family: var(--font-inconsolata) !important;
+    }
+    .ql-font-ubuntu-mono {
+      font-family: var(--font-ubuntu) !important;
+    }
+
+    /* Centered Paper Writing Canvas */
+    #editor-container {
+      flex-grow: 1;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      padding: 40px 0;
+    }
+
+    #editor-wrapper {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Strip all default Quill snow containers outlines */
+    .ql-container.ql-snow {
+      border: none !important;
+      box-shadow: none !important;
+      font-family: var(--font-sailec);
+      font-size: 17px;
+      line-height: 1.75;
+      color: var(--color-text);
+    }
+
+    /* Quill Editor Area */
+    .ql-editor {
+      padding: 0 !important;
+      overflow-y: visible !important;
+      height: auto !important;
+      min-height: 600px;
+      font-family: var(--font-sailec) !important;
+      font-weight: 300 !important;
+      font-size: 17px !important;
+      line-height: 1.75 !important;
+      color: var(--color-text) !important;
+    }
+
+    /* Light Gray Italic Placeholder Style rules */
+    .ql-editor.ql-blank::before {
+      font-family: var(--font-sailec) !important;
+      font-size: 17px !important;
+      font-weight: 300 !important;
+      text-align: left !important;
+      color: #bbb !important;
+      font-style: italic !important;
+      opacity: 1 !important;
+      left: 0 !important;
+      right: auto !important;
+      margin: 0 !important;
+      width: auto !important;
+    }
+
+    /* Paragraph and Header spacing */
+    .ql-editor p {
+      margin-bottom: 24px !important;
+    }
+
+    .ql-editor h1, .ql-editor h2, .ql-editor h3 {
+      color: var(--color-text);
+      font-weight: 300;
+    }
+
+    /* Main H1 Title gets centered by default, styled as large Sailec */
+    .ql-editor h1 {
+      font-family: var(--font-sailec) !important;
+      font-size: 36px !important;
+      text-align: center !important;
+      margin-top: 20px !important;
+      margin-bottom: 30px !important;
+      font-weight: 300 !important;
+      line-height: 1.25 !important;
+    }
+    
+    .ql-editor h2 { 
+      font-family: var(--font-sailec) !important;
+      font-size: 26px !important; 
+      margin-top: 32px !important;
+      margin-bottom: 16px !important;
+    }
+    
+    .ql-editor h3 { 
+      font-family: var(--font-sailec) !important;
+      font-size: 20px !important; 
+      margin-top: 24px !important;
+      margin-bottom: 12px !important;
+    }
+
+    /* Video Embed centering */
+    .ql-video {
+      display: block;
+      margin: 30px auto !important;
+      max-width: 100%;
+      border-radius: 8px;
+    }
+
+    /* Lists styling */
+    .ql-editor ul, .ql-editor ol {
+      margin-bottom: 24px !important;
+      padding-left: 24px !important;
+    }
+
+    .ql-editor li {
+      padding-left: 6px !important;
+      margin-bottom: 8px !important;
+    }
+
+    /* Link formatting */
+    .ql-editor a {
+      color: var(--color-active-blue) !important;
+      text-decoration: underline !important;
+      text-underline-offset: 3px;
+      transition: opacity 0.15s ease;
+    }
+
+    .ql-editor a:hover {
+      opacity: 0.7;
+    }
+
+    /* Code elements styling matching screenshot dark theme */
+    .ql-editor code {
+      background-color: #21201c !important;
+      color: #ffffff !important;
+      font-family: var(--font-inconsolata) !important;
+      font-size: 14px !important;
+      border-radius: 4px;
+      padding: 2px 6px !important;
+    }
+
+    .ql-editor pre {
+      background-color: #21201c !important;
+      color: #ffffff !important;
+      font-family: var(--font-inconsolata) !important;
+      font-size: 14px !important;
+      border-radius: 6px !important;
+      padding: 16px 20px !important;
+      line-height: 1.6 !important;
+      margin-bottom: 24px !important;
+      overflow-x: auto;
+      border: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Separated Sticky Header -->
+  <div id="header-container">
+    <div id="toolbar-wrapper">
+      
+      <!-- Whitelisted ordered controls layout -->
+      <div id="quill-toolbar">
+        <span class="ql-formats">
+          <select class="ql-header">
+            <option selected></option> <!-- Normal -->
+            <option value="1"></option>
+            <option value="2"></option>
+            <option value="3"></option>
+          </select>
+        </span>
+        
+        <span class="ql-formats">
+          <select class="ql-font">
+            <option selected></option> <!-- Sailec Light (Default) -->
+            <option value="georgia"></option> <!-- Georgia -->
+            <option value="sofia"></option> <!-- Sofia Pro -->
+            <option value="slabo"></option> <!-- Slabo 13px -->
+            <option value="roboto-slab"></option> <!-- Roboto Slab -->
+            <option value="inconsolata"></option> <!-- Inconsolata -->
+            <option value="ubuntu-mono"></option> <!-- Ubuntu Mono -->
+          </select>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-bold"></button>
+          <button class="ql-italic"></button>
+          <button class="ql-underline"></button>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-list" value="ordered"></button>
+          <button class="ql-list" value="bullet"></button>
+        </span>
+
+        <span class="ql-formats">
+          <select class="ql-align">
+            <option selected></option> <!-- Left Align -->
+            <option value="center"></option>
+            <option value="right"></option>
+            <option value="justify"></option>
+          </select>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-link"></button>
+          <button class="ql-image"></button>
+          <button class="ql-video"></button>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-formula"></button>
+          <button class="ql-code-block"></button>
+          <button class="ql-clean" title="Clear formatting"></button>
+        </span>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Centered Writing Area -->
+  <div id="editor-container">
+    <div id="editor-wrapper">
+      <div id="editor-body">
+        <h1 class="ql-align-center">Quill Rich Text Editor</h1>
+        <p>Quill is a free, <a href="https://quilljs.com/" target="_blank">open source</a> WYSIWYG editor built for the modern web. With its <a href="https://quilljs.com/" target="_blank">modular architecture</a> and expressive <a href="https://quilljs.com/" target="_blank">API</a>, it is completely customizable to fit any need.</p>
+        <iframe class="ql-video ql-align-center" frameborder="0" allowfullscreen="true" src="https://www.youtube.com/embed/aqz-KE-bpKQ" style="width: 100%; height: 400px; max-width: 640px; margin: 0 auto; display: block;"></iframe>
+        <p><br></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Include Quill Script -->
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js"></script>
+
+  <script>
+    // Register custom fonts with whitelist
+    const Font = Quill.import('formats/font');
+    Font.whitelist = ['georgia', 'sofia', 'slabo', 'roboto-slab', 'inconsolata', 'ubuntu-mono'];
+    Quill.register(Font, true);
+
+    // Initialize Quill Snow Editor
+    const quill = new Quill('#editor-body', {
+      theme: 'snow',
+      modules: {
+        toolbar: '#quill-toolbar'
+      },
+      placeholder: 'Type your notes here...'
+    });
+  </script>
+</body>
+</html>

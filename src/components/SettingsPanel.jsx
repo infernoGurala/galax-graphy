@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { X, Check } from 'lucide-react';
 import { THEMES, applyTheme, getStoredTheme } from '../lib/themes';
 
@@ -36,7 +37,11 @@ export default function SettingsPanel({ isOpen, onClose }) {
     applyTheme(themeId);
   };
 
-  return (
+  // Portal target — always renders at document.body to avoid parent stacking context issues
+  const portalTarget = typeof document !== 'undefined' ? document.body : null;
+  if (!portalTarget) return null;
+
+  return ReactDOM.createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -62,15 +67,16 @@ export default function SettingsPanel({ isOpen, onClose }) {
           top: 0,
           right: 0,
           bottom: 0,
-          width: '440px',
+          height: '100vh',
+          width: '560px',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
-          background: 'rgba(14, 14, 20, 0.96)',
+          background: 'var(--color-settings-bg)',
           backdropFilter: 'blur(48px) saturate(160%)',
           WebkitBackdropFilter: 'blur(48px) saturate(160%)',
-          borderLeft: '1px solid rgba(255,255,255,0.06)',
-          boxShadow: '-32px 0 100px rgba(0,0,0,0.7)',
+          borderLeft: '1px solid var(--color-border)',
+          boxShadow: '-32px 0 100px rgba(0,0,0,0.35)',
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           transition: 'transform 0.32s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
@@ -81,8 +87,8 @@ export default function SettingsPanel({ isOpen, onClose }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '28px 32px 24px',
-            borderBottom: '1px solid rgba(255,255,255,0.05)',
+            padding: '36px 40px 30px',
+            borderBottom: '1px solid var(--color-border)',
             flexShrink: 0,
           }}
         >
@@ -91,9 +97,9 @@ export default function SettingsPanel({ isOpen, onClose }) {
               style={{
                 margin: 0,
                 fontFamily: 'Inter, sans-serif',
-                fontSize: '18px',
+                fontSize: '24px',
                 fontWeight: 700,
-                letterSpacing: '-0.025em',
+                letterSpacing: '-0.03em',
                 color: 'var(--color-text)',
                 lineHeight: 1.2,
               }}
@@ -102,9 +108,9 @@ export default function SettingsPanel({ isOpen, onClose }) {
             </h2>
             <p
               style={{
-                margin: '6px 0 0',
+                margin: '8px 0 0',
                 fontFamily: 'Inter, sans-serif',
-                fontSize: '12px',
+                fontSize: '14px',
                 color: 'var(--color-text-muted)',
                 lineHeight: 1.5,
                 letterSpacing: '0.01em',
@@ -119,11 +125,11 @@ export default function SettingsPanel({ isOpen, onClose }) {
             onClick={onClose}
             aria-label="Close settings"
             style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: '10px',
-              border: '1px solid rgba(255,255,255,0.07)',
-              background: 'rgba(255,255,255,0.04)',
+              width: '44px',
+              height: '44px',
+              borderRadius: '12px',
+              border: '1px solid var(--color-border)',
+              background: 'var(--color-surface)',
               color: 'var(--color-text-muted)',
               display: 'flex',
               alignItems: 'center',
@@ -133,11 +139,11 @@ export default function SettingsPanel({ isOpen, onClose }) {
               transition: 'background 0.15s ease, color 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.background = 'var(--color-card)';
               e.currentTarget.style.color = 'var(--color-text)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+              e.currentTarget.style.background = 'var(--color-surface)';
               e.currentTarget.style.color = 'var(--color-text-muted)';
             }}
           >
@@ -150,17 +156,17 @@ export default function SettingsPanel({ isOpen, onClose }) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '32px',
+            padding: '40px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '20px',
+            gap: '28px',
           }}
         >
           <p
             style={{
               margin: 0,
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '10px',
+              fontSize: '11px',
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
               color: 'var(--color-text-dim)',
@@ -170,7 +176,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           </p>
 
           {/* ─── Theme Cards ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             {Object.values(THEMES).map((theme) => {
               const isActive = activeTheme === theme.id;
               return (
@@ -187,27 +193,27 @@ export default function SettingsPanel({ isOpen, onClose }) {
                     borderRadius: '16px',
                     padding: 0,
                     border: isActive
-                      ? '1.5px solid rgba(139,92,246,0.5)'
-                      : '1.5px solid rgba(255,255,255,0.06)',
+                      ? '1.5px solid var(--color-accent)'
+                      : '1.5px solid var(--color-border)',
                     background: isActive
-                      ? 'rgba(139,92,246,0.07)'
-                      : 'rgba(255,255,255,0.02)',
+                      ? 'color-mix(in srgb, var(--color-accent) 8%, transparent)'
+                      : 'var(--color-surface)',
                     boxShadow: isActive
-                      ? '0 0 0 4px rgba(139,92,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05)'
+                      ? '0 0 0 4px color-mix(in srgb, var(--color-accent) 8%, transparent), inset 0 1px 0 rgba(255,255,255,0.05)'
                       : 'none',
                     transition: 'all 0.2s cubic-bezier(0.16,1,0.3,1)',
                     overflow: 'hidden',
                   }}
                   onMouseEnter={e => {
                     if (!isActive) {
-                      e.currentTarget.style.border = '1.5px solid rgba(255,255,255,0.12)';
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+                      e.currentTarget.style.border = '1.5px solid var(--color-accent)';
+                      e.currentTarget.style.background = 'color-mix(in srgb, var(--color-text) 4%, transparent)';
                     }
                   }}
                   onMouseLeave={e => {
                     if (!isActive) {
-                      e.currentTarget.style.border = '1.5px solid rgba(255,255,255,0.06)';
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+                      e.currentTarget.style.border = '1.5px solid var(--color-border)';
+                      e.currentTarget.style.background = 'var(--color-surface)';
                     }
                   }}
                 >
@@ -215,7 +221,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                   <div
                     style={{
                       background: theme.bg,
-                      height: '130px',
+                      height: '180px',
                       position: 'relative',
                       overflow: 'hidden',
                       borderBottom: `1px solid ${theme.border}`,
@@ -228,26 +234,26 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         top: 0,
                         left: 0,
                         right: 0,
-                        height: '28px',
+                        height: '36px',
                         background: theme.surface,
                         borderBottom: `1px solid ${theme.border}`,
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '0 12px',
-                        gap: '5px',
+                        padding: '0 16px',
+                        gap: '7px',
                       }}
                     >
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ff5f56' }} />
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ffbd2e' }} />
-                      <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#27c93f' }} />
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f56' }} />
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffbd2e' }} />
+                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#27c93f' }} />
                       {/* Fake breadcrumb */}
-                      <div style={{ marginLeft: 10, display: 'flex', gap: 4, alignItems: 'center' }}>
-                        {[48, 32, 40].map((w, i) => (
+                      <div style={{ marginLeft: 14, display: 'flex', gap: 5, alignItems: 'center' }}>
+                        {[56, 38, 48].map((w, i) => (
                           <div
                             key={i}
                             style={{
                               width: w,
-                              height: 5,
+                              height: 6,
                               borderRadius: 3,
                               background: theme.textMuted,
                               opacity: 0.4 - i * 0.08,
@@ -261,12 +267,12 @@ export default function SettingsPanel({ isOpen, onClose }) {
                     <div
                       style={{
                         position: 'absolute',
-                        top: 38,
-                        left: 20,
-                        right: 20,
+                        top: 48,
+                        left: 24,
+                        right: 24,
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 8,
+                        gap: 10,
                       }}
                     >
                       {/* Heading-like line */}
@@ -295,11 +301,11 @@ export default function SettingsPanel({ isOpen, onClose }) {
                   {/* ── Card footer info ── */}
                   <div
                     style={{
-                      padding: '16px 20px 18px',
+                      padding: '20px 24px 22px',
                       display: 'flex',
                       alignItems: 'flex-start',
                       justifyContent: 'space-between',
-                      gap: 12,
+                      gap: 16,
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -308,7 +314,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         <span
                           style={{
                             fontFamily: 'Inter, sans-serif',
-                            fontSize: '14px',
+                            fontSize: '17px',
                             fontWeight: 600,
                             letterSpacing: '-0.01em',
                             color: 'var(--color-text)',
@@ -320,14 +326,14 @@ export default function SettingsPanel({ isOpen, onClose }) {
                           <span
                             style={{
                               fontFamily: 'JetBrains Mono, monospace',
-                              fontSize: '8px',
+                              fontSize: '9px',
                               textTransform: 'uppercase',
                               letterSpacing: '0.12em',
                               color: theme.accent,
                               background: `${theme.accent}18`,
                               border: `1px solid ${theme.accent}44`,
                               borderRadius: 4,
-                              padding: '2px 6px',
+                              padding: '3px 8px',
                             }}
                           >
                             Active
@@ -337,7 +343,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                       <span
                         style={{
                           fontFamily: 'Inter, sans-serif',
-                          fontSize: '11px',
+                          fontSize: '13px',
                           color: 'var(--color-text-muted)',
                           lineHeight: 1.5,
                         }}
@@ -346,17 +352,17 @@ export default function SettingsPanel({ isOpen, onClose }) {
                       </span>
 
                       {/* Color palette dots */}
-                      <div style={{ display: 'flex', gap: 6, marginTop: 8, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
                         {[theme.bg, theme.surface, theme.accent, theme.accentCyan, theme.text].map((color, i) => (
                           <div
                             key={i}
                             title={color}
                             style={{
-                              width: 14,
-                              height: 14,
+                              width: 18,
+                              height: 18,
                               borderRadius: '50%',
                               background: color,
-                              border: '1px solid rgba(255,255,255,0.12)',
+                              border: '1px solid var(--color-border)',
                               flexShrink: 0,
                             }}
                           />
@@ -364,7 +370,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         <span
                           style={{
                             fontFamily: 'JetBrains Mono, monospace',
-                            fontSize: '9px',
+                            fontSize: '10px',
                             color: 'var(--color-text-dim)',
                             marginLeft: 4,
                           }}
@@ -379,18 +385,18 @@ export default function SettingsPanel({ isOpen, onClose }) {
                       {/* Check circle */}
                       <div
                         style={{
-                          width: 22,
-                          height: 22,
+                          width: 28,
+                          height: 28,
                           borderRadius: '50%',
-                          background: isActive ? theme.accent : 'rgba(255,255,255,0.05)',
-                          border: isActive ? 'none' : '1.5px solid rgba(255,255,255,0.1)',
+                          background: isActive ? theme.accent : 'var(--color-surface)',
+                          border: isActive ? 'none' : '1.5px solid var(--color-border)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           transition: 'all 0.2s ease',
                         }}
                       >
-                        {isActive && <Check size={12} color="#fff" strokeWidth={2.5} />}
+                        {isActive && <Check size={14} color="#fff" strokeWidth={2.5} />}
                       </div>
 
                       {/* Contrast ratio */}
@@ -405,7 +411,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         <span
                           style={{
                             fontFamily: 'JetBrains Mono, monospace',
-                            fontSize: '16px',
+                            fontSize: '22px',
                             fontWeight: 600,
                             color: 'var(--color-text)',
                             letterSpacing: '-0.02em',
@@ -417,7 +423,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         <span
                           style={{
                             fontFamily: 'JetBrains Mono, monospace',
-                            fontSize: '9px',
+                            fontSize: '11px',
                             color: 'var(--color-text-muted)',
                             letterSpacing: '0.08em',
                             textTransform: 'uppercase',
@@ -436,30 +442,30 @@ export default function SettingsPanel({ isOpen, onClose }) {
           {/* ─── WCAG note ─── */}
           <div
             style={{
-              borderRadius: '12px',
-              padding: '16px 18px',
-              background: 'rgba(16,185,129,0.05)',
-              border: '1px solid rgba(16,185,129,0.15)',
+              borderRadius: '14px',
+              padding: '20px 22px',
+              background: 'color-mix(in srgb, #10b981 8%, transparent)',
+              border: '1px solid color-mix(in srgb, #10b981 25%, transparent)',
               display: 'flex',
-              gap: 12,
+              gap: 16,
               alignItems: 'flex-start',
             }}
           >
             <div
               style={{
-                width: 6,
-                height: 6,
+                width: 8,
+                height: 8,
                 borderRadius: '50%',
                 background: '#10b981',
                 flexShrink: 0,
-                marginTop: 5,
+                marginTop: 6,
               }}
             />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span
                 style={{
                   fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: '9px',
+                  fontSize: '11px',
                   textTransform: 'uppercase',
                   letterSpacing: '0.15em',
                   color: '#10b981',
@@ -472,7 +478,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                 style={{
                   margin: 0,
                   fontFamily: 'Inter, sans-serif',
-                  fontSize: '11px',
+                  fontSize: '13px',
                   color: 'var(--color-text-muted)',
                   lineHeight: 1.6,
                 }}
@@ -487,8 +493,8 @@ export default function SettingsPanel({ isOpen, onClose }) {
         {/* ─── Footer ─── */}
         <div
           style={{
-            padding: '16px 32px 20px',
-            borderTop: '1px solid rgba(255,255,255,0.05)',
+            padding: '20px 40px 24px',
+            borderTop: '1px solid var(--color-border)',
             flexShrink: 0,
             display: 'flex',
             alignItems: 'center',
@@ -498,7 +504,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           <span
             style={{
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '9px',
+              fontSize: '11px',
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
               color: 'var(--color-text-dim)',
@@ -509,7 +515,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           <span
             style={{
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '9px',
+              fontSize: '11px',
               color: 'var(--color-text-dim)',
             }}
           >
@@ -518,5 +524,5 @@ export default function SettingsPanel({ isOpen, onClose }) {
         </div>
       </div>
     </>
-  );
+  , portalTarget);
 }

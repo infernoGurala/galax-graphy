@@ -299,14 +299,14 @@ export default function YoutubeWorkspaceScreen() {
         <div className="flex items-center gap-4">
           <button
             onClick={navigateToWorkspaces}
-            className="p-2.5 bg-surface/40 hover:bg-surface border border-border/60 hover:border-white/20 text-text-muted hover:text-text rounded-xl transition-all duration-200 cursor-pointer active:scale-90 shadow-md"
+            className="p-2.5 bg-surface/40 hover:bg-surface border border-border/60 hover:border-accent/30 text-text-muted hover:text-text rounded-xl transition-all duration-200 cursor-pointer active:scale-90 shadow-md"
             title="Back to board"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           
           <div className="flex flex-col">
-            <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-text via-white to-red-400 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-extrabold tracking-tight bg-gradient-to-r from-text via-text/90 to-red-400 bg-clip-text text-transparent">
               {currentWorkspace.name}
             </h1>
             <div className="flex items-center gap-2 mt-1.5">
@@ -330,7 +330,7 @@ export default function YoutubeWorkspaceScreen() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-surface/50 border border-border/80 hover:border-white/20 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
+                className="bg-surface/50 border border-border/80 hover:border-accent/30 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
@@ -340,7 +340,7 @@ export default function YoutubeWorkspaceScreen() {
               <select
                 value={filterTag}
                 onChange={(e) => setFilterTag(e.target.value)}
-                className="bg-surface/50 border border-border/80 hover:border-white/20 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
+                className="bg-surface/50 border border-border/80 hover:border-accent/30 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
               >
                 <option value="all">All Tags</option>
                 <option value="Ambient">Ambient</option>
@@ -362,7 +362,7 @@ export default function YoutubeWorkspaceScreen() {
                 placeholder="Filter index..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-surface/50 backdrop-blur-md border border-border/80 focus:border-white/25 rounded-xl pl-10 pr-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:bg-surface/85"
+                className="w-full bg-surface/50 backdrop-blur-md border border-border/80 focus:border-accent rounded-xl pl-10 pr-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-lg focus:shadow-accent/5 focus:bg-surface/85"
               />
             </div>
           )}
@@ -381,15 +381,15 @@ export default function YoutubeWorkspaceScreen() {
                 className={`w-full bg-surface/50 backdrop-blur-md border ${
                   errorMsg 
                     ? 'border-red-500 focus:border-red-500 animate-pulse' 
-                    : 'border-border/85 focus:border-white/25'
-                } rounded-xl px-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:bg-surface/80`}
+                    : 'border-border/85 focus:border-accent'
+                } rounded-xl px-4 py-2 text-xs text-text placeholder-text-muted outline-none transition-all duration-200 focus:shadow-lg focus:shadow-accent/5 focus:bg-surface/80`}
               />
             </div>
             
             <button
               type="submit"
               disabled={isAdding || !newLink.trim()}
-              className="py-2 px-4 bg-white hover:bg-white/90 disabled:bg-surface/40 disabled:text-text-muted text-black text-xs font-extrabold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all duration-150 active:scale-95 shadow-lg shadow-white/5 cursor-pointer border-none select-none"
+              className="py-2 px-4 bg-text hover:opacity-90 disabled:bg-surface/40 disabled:text-text-muted text-bg text-xs font-extrabold uppercase tracking-wider rounded-xl flex items-center gap-1.5 transition-all duration-150 active:scale-95 shadow-lg cursor-pointer border-none select-none"
             >
               {isAdding ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -541,8 +541,8 @@ function YoutubeVideoCard({
         animationDelay: `${idx * 0.05}s`,
       }}
       className={`animate-card opacity-0 bg-card border ${
-        link.watched ? 'border-border/40 opacity-75' : 'border-border/70 hover:border-white/20'
-      } rounded-2xl shadow-xl hover:shadow-[0_15px_30px_rgba(255,255,255,0.02)] transition-all duration-300 flex flex-col overflow-hidden group premium-card`}
+        link.watched ? 'border-border/40 opacity-75' : 'border-border/70 hover:border-accent/30'
+      } rounded-2xl shadow-xl hover:shadow-xl hover:shadow-accent/5 transition-all duration-300 flex flex-col overflow-hidden group premium-card`}
     >
       <div className="card-glare-overlay" />
       
@@ -591,7 +591,7 @@ function YoutubeVideoCard({
               <span className={`text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full border ring-2 ${stats.color} shadow-lg backdrop-blur-md`}>
                 {activeTag}
               </span>
-              <span className="text-[9px] bg-black/60 border border-white/10 text-yellow-400 font-bold px-2 py-0.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-0.5">
+              <span className="text-[9px] bg-black/60 border border-border/40 text-yellow-400 font-bold px-2 py-0.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-0.5">
                 <Zap className="w-2.5 h-2.5 fill-current" /> {stats.power}
               </span>
             </div>

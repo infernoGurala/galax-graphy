@@ -793,9 +793,9 @@ export default function FolderScreen() {
                     type="button"
                     onClick={() => setGroupColor(color)}
                     className={`w-5 h-5 rounded-full border cursor-pointer transition-all ${
-                      groupColor === color ? 'ring-2 ring-white scale-110' : 'opacity-70 hover:opacity-100'
+                      groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
                     } ${
-                      color === 'default' ? 'bg-white/20 border-white/10' :
+                      color === 'default' ? 'bg-text/20 border-border' :
                       color === 'red' ? 'bg-red-500 border-red-500/10' :
                       color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
                       color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
@@ -816,7 +816,7 @@ export default function FolderScreen() {
             </button>
             <button
               type="submit"
-              className="px-3 py-1.5 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg shadow-white/5 active:scale-95 transition-all cursor-pointer font-sans border-none"
+              className="px-3 py-1.5 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg active:scale-95 transition-all cursor-pointer font-sans border-none"
             >
               Create
             </button>
@@ -857,7 +857,7 @@ export default function FolderScreen() {
               <span className="w-1.5 h-1.5 bg-[#10b981] rounded-full animate-pulse-dot" />
               <span>Active Directory // {time}</span>
             </div>
-            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-white to-white/72 bg-clip-text text-transparent animate-logo-glide truncate">
+            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent animate-logo-glide truncate">
               {currentFolderId === null 
                 ? (workspaces.find(w => w.id === currentWorkspaceId)?.name || 'Root') 
                 : (folders.find(f => f.id === currentFolderId)?.name || 'Folder')}
@@ -887,10 +887,10 @@ export default function FolderScreen() {
                       <span>{idxStr}</span>
                       <span className={`px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] ${
                         item.type === 'canvas' 
-                          ? 'border-white/10 bg-white/5 text-white/70' 
+                          ? 'border-accent bg-accent/10 text-accent' 
                           : item.type === 'folder'
-                          ? 'border-yellow-500/10 bg-yellow-500/5 text-yellow-400'
-                          : 'border-neutral-500/10 bg-neutral-500/5 text-text-muted'
+                          ? 'border-yellow-500/20 bg-yellow-500/5 text-yellow-400'
+                          : 'border-neutral-500/20 bg-neutral-500/5 text-text-muted'
                       }`}>
                         {item.type}
                       </span>
@@ -899,7 +899,7 @@ export default function FolderScreen() {
                       <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans truncate pr-4">
                         {item.name || 'Untitled'}
                       </h3>
-                      <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                      <span className="text-text-muted group-hover:text-accent-hover transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
                     </div>
                     <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
                       {item.type === 'folder' 
@@ -1038,7 +1038,7 @@ export default function FolderScreen() {
                 if (groupItems.length === 0) return null;
 
                 const bullets = {
-                  default: 'bg-white/40',
+                  default: 'bg-text/40',
                   red: 'bg-red-500',
                   blue: 'bg-blue-500',
                   green: 'bg-emerald-500',
@@ -1050,7 +1050,7 @@ export default function FolderScreen() {
                     <div className="border-b border-border/40 pb-2 mb-6 flex items-center gap-2">
                       <span className={`w-2.5 h-2.5 rounded-full ${bullets[group.color || 'default']}`} />
                       <h2 className="text-xs font-black uppercase tracking-wider font-mono text-text">{group.title}</h2>
-                      <span className="text-[9px] text-text-muted font-bold bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-lg ml-1 font-mono">
+                      <span className="text-[9px] text-text-muted font-bold bg-surface border border-border px-2.5 py-0.5 rounded-lg ml-1 font-mono">
                         {groupItems.length}
                       </span>
                     </div>
@@ -1092,9 +1092,9 @@ export default function FolderScreen() {
                 return (
                   <div className="animate-in fade-in duration-200">
                     <div className="border-b border-border/40 pb-2 mb-6 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-white/10" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-text/20" />
                       <h2 className="text-xs font-black uppercase tracking-wider font-mono text-text-muted">Unassigned</h2>
-                      <span className="text-[9px] text-text-muted font-bold bg-white/5 border border-white/5 px-2.5 py-0.5 rounded-lg ml-1 font-mono">
+                      <span className="text-[9px] text-text-muted font-bold bg-surface border border-border px-2.5 py-0.5 rounded-lg ml-1 font-mono">
                         {unassignedItems.length}
                       </span>
                     </div>
@@ -1194,10 +1194,10 @@ export default function FolderScreen() {
                                         className="bg-bg border border-border text-text text-xs rounded-lg px-2.5 py-1.5 outline-none font-sans"
                                         autoFocus
                                       />
-                                      <button onClick={(e) => handleSaveRename(e, item.id)} className="px-3 py-1 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm shadow-white/5">
+                                      <button onClick={(e) => handleSaveRename(e, item.id)} className="px-3 py-1 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm">
                                         Save
                                       </button>
-                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-bg cursor-pointer transition-all">
+                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-surface cursor-pointer transition-all">
                                         Cancel
                                       </button>
                                     </div>
@@ -1268,7 +1268,7 @@ export default function FolderScreen() {
                           <tr className="bg-surface/20 border-y border-border/10">
                             <td colSpan="4" className="py-2 px-6">
                               <div className="flex items-center gap-2 select-none">
-                                <span className="w-2 h-2 rounded-full bg-white/10" />
+                                <span className="w-2.5 h-2.5 rounded-full bg-text/20" />
                                 <span className="text-[10px] font-black uppercase tracking-wider font-mono text-text-muted">Unassigned</span>
                               </div>
                             </td>
@@ -1291,10 +1291,10 @@ export default function FolderScreen() {
                                         className="bg-bg border border-border text-text text-xs rounded-lg px-2.5 py-1.5 outline-none font-sans"
                                         autoFocus
                                       />
-                                      <button onClick={(e) => handleSaveRename(e, item.id)} className="px-3 py-1 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm shadow-white/5">
+                                      <button onClick={(e) => handleSaveRename(e, item.id)} className="px-3 py-1 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm">
                                         Save
                                       </button>
-                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-bg cursor-pointer transition-all">
+                                      <button onClick={handleCancelRename} className="px-3 py-1 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-surface cursor-pointer transition-all">
                                         Cancel
                                       </button>
                                     </div>
@@ -1441,9 +1441,9 @@ export default function FolderScreen() {
                           type="button"
                           onClick={() => setGroupColor(color)}
                           className={`w-6 h-6 rounded-full border cursor-pointer transition-all ${
-                            groupColor === color ? 'ring-2 ring-white scale-110' : 'opacity-70 hover:opacity-100'
+                            groupColor === color ? 'ring-2 ring-text scale-110' : 'opacity-70 hover:opacity-100'
                           } ${
-                            color === 'default' ? 'bg-white/20 border-white/10' :
+                            color === 'default' ? 'bg-text/20 border-border' :
                             color === 'red' ? 'bg-red-500 border-red-500/10' :
                             color === 'blue' ? 'bg-blue-500 border-blue-500/10' :
                             color === 'green' ? 'bg-emerald-500 border-emerald-500/10' : 'bg-yellow-500 border-yellow-500/10'
@@ -1464,7 +1464,7 @@ export default function FolderScreen() {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg shadow-white/5 active:scale-95 transition-all cursor-pointer font-sans border-none"
+                    className="px-4 py-2 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold uppercase tracking-wider rounded-lg shadow-lg active:scale-95 transition-all cursor-pointer font-sans border-none"
                   >
                     Create
                   </button>
@@ -1518,7 +1518,7 @@ export default function FolderScreen() {
           <button
             onClick={() => setViewMode('dashboard')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'dashboard' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             Dashboard
@@ -1526,7 +1526,7 @@ export default function FolderScreen() {
           <button
             onClick={() => setViewMode('board')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'board' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             Board
@@ -1534,7 +1534,7 @@ export default function FolderScreen() {
           <button
             onClick={() => setViewMode('grid')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'grid' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             Grid
@@ -1542,7 +1542,7 @@ export default function FolderScreen() {
           <button
             onClick={() => setViewMode('list')}
             className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'list' ? 'bg-white text-black shadow-md shadow-white/5 font-extrabold' : 'text-text-muted hover:text-text hover:bg-white/5'
+              viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
             }`}
           >
             List
@@ -1564,7 +1564,7 @@ export default function FolderScreen() {
                   contentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${newZoom})`;
                 }
               }}
-              className="w-7 h-7 bg-surface border border-border/60 hover:border-white text-text hover:text-white rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
+              className="w-7 h-7 bg-surface border border-border/60 hover:border-accent text-text hover:text-accent rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
             >
               +
             </button>
@@ -1577,7 +1577,7 @@ export default function FolderScreen() {
                   contentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${newZoom})`;
                 }
               }}
-              className="w-7 h-7 bg-surface border border-border/60 hover:border-white text-text hover:text-white rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
+              className="w-7 h-7 bg-surface border border-border/60 hover:border-accent text-text hover:text-accent rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
             >
               -
             </button>
@@ -1591,7 +1591,7 @@ export default function FolderScreen() {
                   contentRef.current.style.transform = `translate(0px, 0px) scale(1)`;
                 }
               }}
-              className="px-2 py-1 bg-surface border border-border/60 hover:border-white text-[8px] font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all active:scale-90"
+              className="px-2 py-1 bg-surface border border-border/60 hover:border-accent text-[8px] font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all active:scale-90"
             >
               Reset
             </button>
@@ -1611,7 +1611,7 @@ export default function FolderScreen() {
               handleCreateHUD('note');
             }
           }}
-          className="bg-white hover:bg-white/90 text-black px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg shadow-white/5 active:scale-95 flex items-center gap-1 font-sans border-none"
+          className="bg-text hover:opacity-90 text-bg px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-1 font-sans border-none"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>New</span>
@@ -1692,25 +1692,25 @@ function ItemCard({
                 className="bg-bg border border-border text-text text-xs rounded-lg px-2.5 py-1.5 w-full outline-none font-sans"
                 autoFocus
               />
-              <button onClick={(e) => handleSaveRename(e, item.id)} className="px-3 py-1.5 bg-white hover:bg-white/90 text-black text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm shadow-white/5">
+              <button onClick={(e) => handleSaveRename(e, item.id)} className="px-3 py-1.5 bg-text hover:opacity-90 text-bg text-[10px] font-extrabold rounded-lg uppercase cursor-pointer transition-all active:scale-95 border-none shadow-sm">
                 Save
               </button>
-              <button onClick={handleCancelRename} className="px-3 py-1.5 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-bg cursor-pointer transition-all">
+              <button onClick={handleCancelRename} className="px-3 py-1.5 border border-border text-text-muted text-[10px] rounded-lg uppercase hover:bg-surface cursor-pointer transition-all">
                 Cancel
               </button>
             </div>
           ) : (
             <>
-              <h3 className="font-extrabold text-text text-base leading-snug truncate group-hover:text-white transition-colors duration-150 font-sans tracking-tight">
+              <h3 className="font-extrabold text-text text-base leading-snug truncate group-hover:text-accent-hover transition-colors duration-150 font-sans tracking-tight">
                 {item.name || 'Untitled'}
               </h3>
               <div className="mt-1.5">
                 <span className={`px-2 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] ${
                   item.type === 'canvas' 
-                    ? 'border-accent/10 bg-accent/5 text-accent' 
+                    ? 'border-accent bg-accent/10 text-accent font-bold' 
                     : item.type === 'folder'
-                    ? 'border-yellow-500/10 bg-yellow-500/5 text-yellow-400'
-                    : 'border-neutral-500/10 bg-neutral-500/5 text-text-muted'
+                    ? 'border-yellow-500/20 bg-yellow-500/5 text-yellow-400'
+                    : 'border-neutral-500/20 bg-neutral-500/5 text-text-muted'
                 }`}>
                   {item.type}
                 </span>
@@ -1766,11 +1766,11 @@ function GroupCard({
 
   const colors = {
     default: {
-      border: 'border-white/10 hover:border-white/20',
-      bg: 'bg-white/[0.015]',
-      glow: 'shadow-[0_0_15px_rgba(255,255,255,0.01)]',
+      border: 'border-border/60 hover:border-accent/30',
+      bg: 'bg-surface/10',
+      glow: '',
       text: 'text-text-muted',
-      bullet: 'bg-white/40'
+      bullet: 'bg-text/40'
     },
     red: {
       border: 'border-red-500/20 hover:border-red-500/30',
@@ -1911,12 +1911,12 @@ function GroupCard({
               <button
                 key={cName}
                 onClick={() => handleColorChange(cName)}
-                className={`w-2.5 h-2.5 rounded-full border border-white/5 cursor-pointer ${
-                  cName === 'default' ? 'bg-white/20' : 
+                className={`w-2.5 h-2.5 rounded-full border border-border/40 cursor-pointer ${
+                  cName === 'default' ? 'bg-text/20' : 
                   cName === 'red' ? 'bg-red-500' :
                   cName === 'blue' ? 'bg-blue-500' :
                   cName === 'green' ? 'bg-emerald-500' : 'bg-yellow-500'
-                } ${group.color === cName ? 'ring-1 ring-white' : ''}`}
+                } ${group.color === cName ? 'ring-1 ring-text' : ''}`}
               />
             ))}
           </div>

@@ -11,6 +11,7 @@ import SearchPalette from './components/SearchPalette';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmationModal from './components/ConfirmationModal';
 import { applyTheme, getStoredTheme } from './lib/themes';
+import SettingsPanel from './components/SettingsPanel';
 
 export default function App() {
   const {
@@ -25,6 +26,19 @@ export default function App() {
   } = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  // Global right-click settings toggle listener
+  useEffect(() => {
+    const handleContextMenu = (e) => {
+      if (!isAuthenticated) return;
+      e.preventDefault();
+      setSettingsOpen(true);
+    };
+
+    window.addEventListener('contextmenu', handleContextMenu);
+    return () => window.removeEventListener('contextmenu', handleContextMenu);
+  }, [isAuthenticated]);
 
   // Apply saved theme immediately on mount (before first paint)
   useEffect(() => {
@@ -159,6 +173,9 @@ export default function App() {
 
           {/* Custom Global Confirmation Dialog */}
           <ConfirmationModal />
+
+          {/* Global right-click settings panel */}
+          <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
         </>
       )}
     </div>

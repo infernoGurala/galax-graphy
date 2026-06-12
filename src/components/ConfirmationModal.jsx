@@ -45,7 +45,7 @@ export default function ConfirmationModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header bar with thin accent indicator */}
-        <div className={`h-[2px] w-full ${isDestructive ? 'bg-red-500' : 'bg-white/60'}`} />
+        <div className={`h-[2px] w-full ${isDestructive ? 'bg-red-500' : 'bg-accent'}`} />
 
         <div className="p-6 flex flex-col gap-3.5">
           <span className="text-[9px] font-mono font-bold text-text-dim uppercase tracking-[0.15em]">
@@ -76,7 +76,7 @@ export default function ConfirmationModal() {
             className={`px-4 py-2 text-[9px] font-bold uppercase tracking-wider rounded-xl transition-all duration-150 cursor-pointer active:scale-95 outline-none border-none ${
               isDestructive 
                 ? 'bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-950/20' 
-                : 'bg-white hover:bg-white/90 text-black shadow-md shadow-white/5 font-extrabold'
+                : 'bg-text hover:opacity-90 text-bg shadow-md font-extrabold'
             }`}
           >
             {confirmLabel}

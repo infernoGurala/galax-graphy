@@ -1,265 +1,303 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import Link from '@tiptap/extension-link';
-import TaskList from '@tiptap/extension-task-list';
-import TaskItem from '@tiptap/extension-task-item';
+import Quill from 'quill';
+import 'quill/dist/quill.snow.css';
 import { useStore } from '../store/useStore';
-import { ExcalidrawNode, PluginBlockNode, SlashCommand, getSuggestionItems } from './CustomExtensions';
+
+// Register custom fonts with whitelist
+const Font = Quill.import('formats/font');
+Font.whitelist = ['georgia', 'sofia', 'slabo', 'roboto-slab', 'inconsolata', 'ubuntu-mono'];
+Quill.register(Font, true);
+
+// Lossless migration helper from TipTap to Quill Delta format
+function convertTipTapToDelta(tiptapJson) {
+  if (!tiptapJson || tiptapJson.type !== 'doc') {
+    return tiptapJson;
+  }
+  
+  const ops = [];
+  if (Array.isArray(tiptapJson.content)) {
+    tiptapJson.content.forEach(node => {
+      if (node.type === 'paragraph') {
+        if (Array.isArray(node.content)) {
+          node.content.forEach(child => {
+            if (child.type === 'text' && child.text) {
+              ops.push({ insert: child.text });
+            }
+          });
+        }
+        ops.push({ insert: '\n' });
+      } else if (node.type === 'heading') {
+        if (Array.isArray(node.content)) {
+          node.content.forEach(child => {
+            if (child.type === 'text' && child.text) {
+              ops.push({ insert: child.text });
+            }
+          });
+        }
+        ops.push({ insert: '\n', attributes: { header: node.attrs?.level || 1 } });
+      } else if (node.type === 'taskList') {
+        if (Array.isArray(node.content)) {
+          node.content.forEach(item => {
+            if (item.type === 'taskItem' && Array.isArray(item.content)) {
+              item.content.forEach(paragraph => {
+                if (paragraph.type === 'paragraph' && Array.isArray(paragraph.content)) {
+                  paragraph.content.forEach(child => {
+                    if (child.type === 'text' && child.text) {
+                      ops.push({ insert: child.text });
+                    }
+                  });
+                }
+              });
+              ops.push({ insert: '\n', attributes: { list: 'bullet' } });
+            }
+          });
+        }
+      } else if (node.type === 'bulletList' || node.type === 'orderedList') {
+        const listType = node.type === 'orderedList' ? 'ordered' : 'bullet';
+        if (Array.isArray(node.content)) {
+          node.content.forEach(item => {
+            if (item.type === 'listItem' && Array.isArray(item.content)) {
+              item.content.forEach(paragraph => {
+                if (paragraph.type === 'paragraph' && Array.isArray(paragraph.content)) {
+                  paragraph.content.forEach(child => {
+                    if (child.type === 'text' && child.text) {
+                      ops.push({ insert: child.text });
+                    }
+                  });
+                }
+              });
+              ops.push({ insert: '\n', attributes: { list: listType } });
+            }
+          });
+        }
+      } else {
+        let text = '';
+        const extractText = (n) => {
+          if (n.text) text += n.text;
+          if (Array.isArray(n.content)) {
+            n.content.forEach(extractText);
+          }
+        };
+        extractText(node);
+        if (text) {
+          ops.push({ insert: text });
+        }
+        ops.push({ insert: '\n' });
+      }
+    });
+  }
+  
+  return { ops };
+}
 
 export default function NovelEditor({ noteId, setSaveStatus }) {
   const notes = useStore(state => state.notes);
   const updateNoteContent = useStore(state => state.updateNoteContent);
-  const currentWorkspaceId = useStore(state => state.currentWorkspaceId);
-  const currentNoteId = useStore(state => state.currentNoteId);
-  const createCanvas = useStore(state => state.createCanvas);
-  const savePluginData = useStore(state => state.savePluginData);
-
+  const renameNote = useStore(state => state.renameNote);
   const note = notes.find(n => n.id === noteId);
-  const [menuState, setMenuState] = useState({
-    show: false,
-    x: 0,
-    y: 0,
-    query: '',
-    range: null
-  });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const menuRef = useRef(null);
-  const editorRef = useRef(null);
+
+  const [title, setTitle] = useState('');
+
+  // Sync title from store
+  useEffect(() => {
+    if (note) {
+      setTitle(note.title || '');
+    }
+  }, [noteId, note?.title]);
+
+  const handleTitleChange = (e) => {
+    const newTitle = e.target.value;
+    setTitle(newTitle);
+    renameNote(noteId, newTitle);
+  };
+
+  const quillElementRef = useRef(null);
+  const [quill, setQuill] = useState(null);
+  const quillRef = useRef(null);
   const saveTimeoutRef = useRef(null);
 
+  const noteIdRef = useRef(noteId);
+  const updateNoteContentRef = useRef(updateNoteContent);
+  const setSaveStatusRef = useRef(setSaveStatus);
+
+  // Sync refs to prevent stale closure capture in listeners
   useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    };
+    noteIdRef.current = noteId;
+    updateNoteContentRef.current = updateNoteContent;
+    setSaveStatusRef.current = setSaveStatus;
+  }, [noteId, updateNoteContent, setSaveStatus]);
+
+  // Clean heading & underline styling rule parser
+  const updateHeadingDecorations = () => {
+    const q = quillRef.current;
+    if (!q) return;
+
+    const lines = q.getLines();
+
+    // First remove custom class from all lines
+    lines.forEach(line => {
+      if (line.domNode) {
+        line.domNode.classList.remove('custom-heading-2x');
+      }
+    });
+
+    // Scan lines and apply styling for matching pairs
+    for (let i = 1; i < lines.length; i++) {
+      const currentLine = lines[i];
+      const prevLine = lines[i - 1];
+
+      if (currentLine.domNode && prevLine.domNode) {
+        const currentText = currentLine.domNode.textContent || '';
+        const prevText = prevLine.domNode.textContent || '';
+
+        const isEqualsOnly = /^[=]+$/.test(currentText);
+        if (isEqualsOnly && currentText.length === prevText.length && prevText.length > 0) {
+          prevLine.domNode.classList.add('custom-heading-2x');
+        }
+      }
+    }
+  };
+
+  // Initialize Quill Editor once on mount
+  useEffect(() => {
+    if (!quillElementRef.current || quillRef.current) return;
+
+    const q = new Quill(quillElementRef.current, {
+      theme: 'snow',
+      modules: {
+        toolbar: '#quill-toolbar'
+      },
+      placeholder: 'Type your notes here...'
+    });
+
+    setQuill(q);
+    quillRef.current = q;
   }, []);
 
-  const handleSelectionOrTextUpdate = (editor) => {
-    const { selection } = editor.state;
-    const { $from, empty } = selection;
+  // Sync note loading when active noteId changes
+  useEffect(() => {
+    const q = quill;
+    if (!q || !note) return;
 
-    if (!empty) {
-      setMenuState(prev => ({ ...prev, show: false }));
-      return;
-    }
-
-    const textBefore = $from.parent.textBetween(Math.max(0, $from.parentOffset - 20), $from.parentOffset, null, '\n');
-    const match = textBefore.match(/\/(\w*)$/);
-
-    if (match) {
-      const query = match[1];
-      const pos = $from.pos - query.length - 1;
-      
-      try {
-        const coords = editor.view.coordsAtPos(pos);
-        let x = coords.left;
-        let y = coords.bottom;
-
-        if (editorRef.current) {
-          const rect = editorRef.current.getBoundingClientRect();
-          x = coords.left - rect.left;
-          y = coords.bottom - rect.top;
-        }
-
-        setMenuState({
-          show: true,
-          x,
-          y,
-          query,
-          range: { from: pos, to: $from.pos }
-        });
-        setSelectedIndex(0);
-      } catch (err) {
-        console.warn('Failed to calculate cursor coordinates:', err);
-      }
+    const rawContent = note.content;
+    let cleanDelta;
+    if (rawContent && rawContent.type === 'doc') {
+      cleanDelta = convertTipTapToDelta(rawContent);
     } else {
-      setMenuState(prev => ({ ...prev, show: false }));
+      cleanDelta = rawContent || { ops: [] };
     }
-  };
 
-  // Setup the TipTap Editor
-  const editor = useEditor({
-    extensions: [
-      StarterKit,
-      Placeholder.configure({
-        placeholder: "Type '/' for blocks and canvas drawings...",
-        emptyEditorClass: 'is-editor-empty',
-      }),
-      Link.configure({
-        openOnClick: false,
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      ExcalidrawNode,
-      PluginBlockNode,
-      SlashCommand
-    ],
-    content: note?.content || { type: 'doc', content: [] },
-    onUpdate: ({ editor }) => {
-      const json = editor.getJSON();
-      setSaveStatus?.('saving');
-      
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(async () => {
-        await updateNoteContent(noteId, json);
-        setSaveStatus?.('saved');
-      }, 750);
-      
-      handleSelectionOrTextUpdate(editor);
-    },
-    onSelectionUpdate: ({ editor }) => {
-      handleSelectionOrTextUpdate(editor);
+    const currentContents = q.getContents();
+    if (JSON.stringify(currentContents) !== JSON.stringify(cleanDelta)) {
+      q.setContents(cleanDelta, 'silent');
+      setTimeout(updateHeadingDecorations, 50);
     }
-  }, [noteId]);
+  }, [noteId, quill, note]);
 
-  // Sync content if noteId changes
+  // Handle user input changes and auto-save
   useEffect(() => {
-    if (editor && note) {
-      const currentContent = editor.getJSON();
-      if (JSON.stringify(currentContent) !== JSON.stringify(note.content)) {
-        editor.commands.setContent(note.content, false);
+    const q = quill;
+    if (!q) return;
+
+    const handleTextChange = (delta, oldDelta, source) => {
+      if (source === 'user') {
+        setSaveStatusRef.current?.('saving');
+        updateHeadingDecorations();
+
+        if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = setTimeout(async () => {
+          const content = q.getContents();
+          await updateNoteContentRef.current?.(noteIdRef.current, content);
+          setSaveStatusRef.current?.('saved');
+        }, 750);
+      } else {
+        updateHeadingDecorations();
       }
-    }
-  }, [noteId, editor]);
-
-  // Handle embedded canvas insertion event from TipTap
-  useEffect(() => {
-    if (!editor) return;
-
-    const handleInsertCanvas = async (e) => {
-      const { editor: evtEditor, range } = e.detail;
-      const newCanvas = await createCanvas(
-        currentWorkspaceId,
-        currentNoteId,
-        'Embedded board',
-        false, // standalone: false
-        { elements: [], appState: {} }
-      );
-
-      evtEditor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .insertContent({
-          type: 'excalidrawCanvas',
-          attrs: { id: newCanvas.id }
-        })
-        .run();
     };
 
-    const handleInsertPlugin = async (e) => {
-      const { editor: evtEditor, range, pluginId } = e.detail;
-      const pluginRefId = 'plug-' + Math.random().toString(36).substring(2, 12);
-      
-      await savePluginData(pluginId, 'pureref_data', pluginRefId, { images: [] });
-
-      evtEditor
-        .chain()
-        .focus()
-        .deleteRange(range)
-        .insertContent({
-          type: 'pluginBlock',
-          attrs: { id: pluginRefId, pluginId }
-        })
-        .run();
-    };
-
-    window.addEventListener('insert-embedded-canvas', handleInsertCanvas);
-    window.addEventListener('insert-embedded-plugin', handleInsertPlugin);
-    
+    q.on('text-change', handleTextChange);
     return () => {
-      window.removeEventListener('insert-embedded-canvas', handleInsertCanvas);
-      window.removeEventListener('insert-embedded-plugin', handleInsertPlugin);
+      q.off('text-change', handleTextChange);
     };
-  }, [editor, currentWorkspaceId, currentNoteId, createCanvas, savePluginData]);
-
-
-
-  const menuItems = getSuggestionItems({ query: menuState.query });
-
-  const executeMenuItem = (item) => {
-    if (!editor || !menuState.range) return;
-    item.command({ editor, range: menuState.range });
-    setMenuState(prev => ({ ...prev, show: false }));
-  };
-
-  useEffect(() => {
-    if (!menuState.show || !editor) return;
-
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowDown') {
-        e.preventDefault();
-        setSelectedIndex(prev => (prev + 1) % menuItems.length);
-      } else if (e.key === 'ArrowUp') {
-        e.preventDefault();
-        setSelectedIndex(prev => (prev - 1 + menuItems.length) % menuItems.length);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        if (menuItems[selectedIndex]) {
-          executeMenuItem(menuItems[selectedIndex]);
-        }
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        setMenuState(prev => ({ ...prev, show: false }));
-        editor.commands.focus();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown, true);
-    return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [menuState.show, menuItems, selectedIndex, editor]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setMenuState(prev => ({ ...prev, show: false }));
-      }
-    };
-
-    if (menuState.show) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuState.show]);
+  }, [quill]);
 
   return (
-    <div ref={editorRef} className="w-full relative py-6">
-      <EditorContent editor={editor} className="font-sans text-text leading-relaxed select-text" />
+    <div className="w-full relative py-2">
+      {/* Custom Showcase-styled Toolbar */}
+      <div id="quill-toolbar">
+        <span className="ql-formats">
+          <select className="ql-header">
+            <option selected></option> {/* Normal */}
+            <option value="1"></option>
+            <option value="2"></option>
+            <option value="3"></option>
+          </select>
+        </span>
+        
+        <span className="ql-formats">
+          <select className="ql-font">
+            <option selected></option> {/* Sailec Light (Default) */}
+            <option value="georgia"></option> {/* Georgia */}
+            <option value="sofia"></option> {/* Sofia Pro */}
+            <option value="slabo"></option> {/* Slabo 13px */}
+            <option value="roboto-slab"></option> {/* Roboto Slab */}
+            <option value="inconsolata"></option> {/* Inconsolata */}
+            <option value="ubuntu-mono"></option> {/* Ubuntu Mono */}
+          </select>
+        </span>
 
-      {menuState.show && menuItems.length > 0 && (
-        <div
-          ref={menuRef}
+        <span className="ql-formats">
+          <button className="ql-bold"></button>
+          <button className="ql-italic"></button>
+          <button className="ql-underline"></button>
+        </span>
+
+        <span className="ql-formats">
+          <button className="ql-list" value="ordered"></button>
+          <button className="ql-list" value="bullet"></button>
+        </span>
+
+        <span className="ql-formats">
+          <select className="ql-align">
+            <option selected></option> {/* Left Align */}
+            <option value="center"></option>
+            <option value="right"></option>
+            <option value="justify"></option>
+          </select>
+        </span>
+
+        <span className="ql-formats">
+          <button className="ql-link"></button>
+          <button className="ql-image"></button>
+          <button className="ql-video"></button>
+        </span>
+
+        <span className="ql-formats">
+          <button className="ql-formula"></button>
+          <button className="ql-code-block"></button>
+          <button className="ql-clean" title="Clear formatting"></button>
+        </span>
+      </div>
+
+      {/* Title Input Field */}
+      <div className="mb-8 mt-2">
+        <input
+          type="text"
+          value={title}
+          onChange={handleTitleChange}
+          placeholder="Untitled Note"
+          className="w-full text-[32px] font-light bg-transparent border-none outline-none focus:outline-none focus:ring-0 placeholder:text-text-muted/30 text-text text-center"
           style={{
-            position: 'absolute',
-            top: `${menuState.y}px`,
-            left: `${menuState.x}px`,
-            zIndex: 1000,
+            fontFamily: 'var(--font-sailec)',
+            textAlign: 'center',
+            border: 'none',
+            outline: 'none',
           }}
-          className="w-72 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden py-2 animate-in fade-in slide-in-from-top-1 duration-150"
-        >
-          <div className="px-3.5 py-1 text-[10px] text-text-muted font-bold tracking-wider uppercase font-sans">
-            Blocks
-          </div>
-          {menuItems.map((item, index) => {
-            const isSelected = index === selectedIndex;
-            return (
-              <button
-                key={item.title}
-                onClick={() => executeMenuItem(item)}
-                className={`w-full flex flex-col px-4 py-2 text-left cursor-pointer transition-colors duration-150 ${
-                  isSelected ? 'bg-bg' : ''
-                }`}
-              >
-                <div className="text-xs font-bold text-text font-sans tracking-wide">{item.title}</div>
-                <div className="text-[10px] text-text-muted font-sans mt-0.5 line-clamp-1">{item.description}</div>
-              </button>
-            );
-          })}
-        </div>
-      )}
+        />
+      </div>
+
+      {/* Editor Body Area */}
+      <div ref={quillElementRef} />
     </div>
   );
 }
