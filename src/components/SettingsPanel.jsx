@@ -68,7 +68,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           right: 0,
           bottom: 0,
           height: '100vh',
-          width: '560px',
+          width: '35rem',
           zIndex: 9999,
           display: 'flex',
           flexDirection: 'column',
@@ -87,7 +87,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '36px 40px 30px',
+            padding: '2.25rem 2.5rem 1.875rem',
             borderBottom: '1px solid var(--color-border)',
             flexShrink: 0,
           }}
@@ -97,7 +97,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
               style={{
                 margin: 0,
                 fontFamily: 'Inter, sans-serif',
-                fontSize: '24px',
+                fontSize: '1.5rem',
                 fontWeight: 700,
                 letterSpacing: '-0.03em',
                 color: 'var(--color-text)',
@@ -108,9 +108,9 @@ export default function SettingsPanel({ isOpen, onClose }) {
             </h2>
             <p
               style={{
-                margin: '8px 0 0',
+                margin: '0.5rem 0 0',
                 fontFamily: 'Inter, sans-serif',
-                fontSize: '14px',
+                fontSize: '0.875rem',
                 color: 'var(--color-text-muted)',
                 lineHeight: 1.5,
                 letterSpacing: '0.01em',
@@ -125,9 +125,9 @@ export default function SettingsPanel({ isOpen, onClose }) {
             onClick={onClose}
             aria-label="Close settings"
             style={{
-              width: '44px',
-              height: '44px',
-              borderRadius: '12px',
+              width: '2.75rem',
+              height: '2.75rem',
+              borderRadius: '0.75rem',
               border: '1px solid var(--color-border)',
               background: 'var(--color-surface)',
               color: 'var(--color-text-muted)',
@@ -156,17 +156,17 @@ export default function SettingsPanel({ isOpen, onClose }) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            padding: '40px',
+            padding: '2.5rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '28px',
+            gap: '1.75rem',
           }}
         >
           <p
             style={{
               margin: 0,
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '11px',
+              fontSize: '0.6875rem',
               textTransform: 'uppercase',
               letterSpacing: '0.18em',
               color: 'var(--color-text-dim)',
@@ -176,7 +176,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           </p>
 
           {/* ─── Theme Cards ─── */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
             {Object.values(THEMES).map((theme) => {
               const isActive = activeTheme === theme.id;
               return (
@@ -190,7 +190,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                     width: '100%',
                     textAlign: 'left',
                     cursor: 'pointer',
-                    borderRadius: '16px',
+                    borderRadius: '1rem',
                     padding: 0,
                     border: isActive
                       ? '1.5px solid var(--color-accent)'
@@ -221,7 +221,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                   <div
                     style={{
                       background: theme.bg,
-                      height: '180px',
+                      height: '11.25rem',
                       position: 'relative',
                       overflow: 'hidden',
                       borderBottom: `1px solid ${theme.border}`,
@@ -234,27 +234,27 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         top: 0,
                         left: 0,
                         right: 0,
-                        height: '36px',
+                        height: '2.25rem',
                         background: theme.surface,
                         borderBottom: `1px solid ${theme.border}`,
                         display: 'flex',
                         alignItems: 'center',
-                        padding: '0 16px',
-                        gap: '7px',
+                        padding: '0 1rem',
+                        gap: '0.4375rem',
                       }}
                     >
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f56' }} />
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffbd2e' }} />
-                      <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#27c93f' }} />
+                      <div style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', background: '#ff5f56' }} />
+                      <div style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', background: '#ffbd2e' }} />
+                      <div style={{ width: '0.75rem', height: '0.75rem', borderRadius: '50%', background: '#27c93f' }} />
                       {/* Fake breadcrumb */}
-                      <div style={{ marginLeft: 14, display: 'flex', gap: 5, alignItems: 'center' }}>
+                      <div style={{ marginLeft: '0.875rem', display: 'flex', gap: '0.3125rem', alignItems: 'center' }}>
                         {[56, 38, 48].map((w, i) => (
                           <div
                             key={i}
                             style={{
                               width: w,
-                              height: 6,
-                              borderRadius: 3,
+                              height: '0.375rem',
+                              borderRadius: '0.1875rem',
                               background: theme.textMuted,
                               opacity: 0.4 - i * 0.08,
                             }}
@@ -267,31 +267,31 @@ export default function SettingsPanel({ isOpen, onClose }) {
                     <div
                       style={{
                         position: 'absolute',
-                        top: 48,
-                        left: 24,
-                        right: 24,
+                        top: '3rem',
+                        left: '1.5rem',
+                        right: '1.5rem',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 10,
+                        gap: '0.625rem',
                       }}
                     >
                       {/* Heading-like line */}
-                      <div style={{ width: '65%', height: 8, borderRadius: 4, background: theme.text, opacity: 0.85 }} />
+                      <div style={{ width: '65%', height: '0.5rem', borderRadius: '0.25rem', background: theme.text, opacity: 0.85 }} />
                       {/* Sub lines */}
-                      <div style={{ width: '45%', height: 5, borderRadius: 3, background: theme.textMuted, opacity: 0.5 }} />
-                      <div style={{ width: '78%', height: 5, borderRadius: 3, background: theme.textMuted, opacity: 0.3 }} />
-                      <div style={{ width: '55%', height: 5, borderRadius: 3, background: theme.textMuted, opacity: 0.25 }} />
+                      <div style={{ width: '45%', height: '0.3125rem', borderRadius: '0.1875rem', background: theme.textMuted, opacity: 0.5 }} />
+                      <div style={{ width: '78%', height: '0.3125rem', borderRadius: '0.1875rem', background: theme.textMuted, opacity: 0.3 }} />
+                      <div style={{ width: '55%', height: '0.3125rem', borderRadius: '0.1875rem', background: theme.textMuted, opacity: 0.25 }} />
                     </div>
 
                     {/* Accent pill bottom-right */}
                     <div
                       style={{
                         position: 'absolute',
-                        bottom: 12,
-                        right: 14,
-                        height: 14,
-                        width: 36,
-                        borderRadius: 7,
+                        bottom: '0.75rem',
+                        right: '0.875rem',
+                        height: '0.875rem',
+                        width: '2.25rem',
+                        borderRadius: '0.4375rem',
                         background: theme.accent,
                         opacity: 0.8,
                       }}
@@ -301,20 +301,20 @@ export default function SettingsPanel({ isOpen, onClose }) {
                   {/* ── Card footer info ── */}
                   <div
                     style={{
-                      padding: '20px 24px 22px',
+                      padding: '1.25rem 1.5rem 1.375rem',
                       display: 'flex',
                       alignItems: 'flex-start',
                       justifyContent: 'space-between',
-                      gap: 16,
+                      gap: '1rem',
                     }}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                       {/* Name + active indicator */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <span
                           style={{
                             fontFamily: 'Inter, sans-serif',
-                            fontSize: '17px',
+                            fontSize: '1.0625rem',
                             fontWeight: 600,
                             letterSpacing: '-0.01em',
                             color: 'var(--color-text)',
@@ -326,14 +326,14 @@ export default function SettingsPanel({ isOpen, onClose }) {
                           <span
                             style={{
                               fontFamily: 'JetBrains Mono, monospace',
-                              fontSize: '9px',
+                              fontSize: '0.5625rem',
                               textTransform: 'uppercase',
                               letterSpacing: '0.12em',
                               color: theme.accent,
                               background: `${theme.accent}18`,
                               border: `1px solid ${theme.accent}44`,
-                              borderRadius: 4,
-                              padding: '3px 8px',
+                              borderRadius: '0.25rem',
+                              padding: '0.1875rem 0.5rem',
                             }}
                           >
                             Active
@@ -343,7 +343,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                       <span
                         style={{
                           fontFamily: 'Inter, sans-serif',
-                          fontSize: '13px',
+                          fontSize: '0.8125rem',
                           color: 'var(--color-text-muted)',
                           lineHeight: 1.5,
                         }}
@@ -352,14 +352,14 @@ export default function SettingsPanel({ isOpen, onClose }) {
                       </span>
 
                       {/* Color palette dots */}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10, alignItems: 'center' }}>
+                      <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.625rem', alignItems: 'center' }}>
                         {[theme.bg, theme.surface, theme.accent, theme.accentCyan, theme.text].map((color, i) => (
                           <div
                             key={i}
                             title={color}
                             style={{
-                              width: 18,
-                              height: 18,
+                              width: '1.125rem',
+                              height: '1.125rem',
                               borderRadius: '50%',
                               background: color,
                               border: '1px solid var(--color-border)',
@@ -370,9 +370,9 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         <span
                           style={{
                             fontFamily: 'JetBrains Mono, monospace',
-                            fontSize: '10px',
+                            fontSize: '0.625rem',
                             color: 'var(--color-text-dim)',
-                            marginLeft: 4,
+                            marginLeft: '0.25rem',
                           }}
                         >
                           {theme.bg}
@@ -381,12 +381,12 @@ export default function SettingsPanel({ isOpen, onClose }) {
                     </div>
 
                     {/* Right: Check + CR badge */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 }}>
                       {/* Check circle */}
                       <div
                         style={{
-                          width: 28,
-                          height: 28,
+                          width: '1.75rem',
+                          height: '1.75rem',
                           borderRadius: '50%',
                           background: isActive ? theme.accent : 'var(--color-surface)',
                           border: isActive ? 'none' : '1.5px solid var(--color-border)',
@@ -405,13 +405,13 @@ export default function SettingsPanel({ isOpen, onClose }) {
                           display: 'flex',
                           flexDirection: 'column',
                           alignItems: 'flex-end',
-                          gap: 2,
+                          gap: '0.125rem',
                         }}
                       >
                         <span
                           style={{
                             fontFamily: 'JetBrains Mono, monospace',
-                            fontSize: '22px',
+                            fontSize: '1.375rem',
                             fontWeight: 600,
                             color: 'var(--color-text)',
                             letterSpacing: '-0.02em',
@@ -423,7 +423,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                         <span
                           style={{
                             fontFamily: 'JetBrains Mono, monospace',
-                            fontSize: '11px',
+                            fontSize: '0.6875rem',
                             color: 'var(--color-text-muted)',
                             letterSpacing: '0.08em',
                             textTransform: 'uppercase',
@@ -442,30 +442,30 @@ export default function SettingsPanel({ isOpen, onClose }) {
           {/* ─── WCAG note ─── */}
           <div
             style={{
-              borderRadius: '14px',
-              padding: '20px 22px',
+              borderRadius: '0.875rem',
+              padding: '1.25rem 1.375rem',
               background: 'color-mix(in srgb, #10b981 8%, transparent)',
               border: '1px solid color-mix(in srgb, #10b981 25%, transparent)',
               display: 'flex',
-              gap: 16,
+              gap: '1rem',
               alignItems: 'flex-start',
             }}
           >
             <div
               style={{
-                width: 8,
-                height: 8,
+                width: '0.5rem',
+                height: '0.5rem',
                 borderRadius: '50%',
                 background: '#10b981',
                 flexShrink: 0,
-                marginTop: 6,
+                marginTop: '0.375rem',
               }}
             />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <span
                 style={{
                   fontFamily: 'JetBrains Mono, monospace',
-                  fontSize: '11px',
+                  fontSize: '0.6875rem',
                   textTransform: 'uppercase',
                   letterSpacing: '0.15em',
                   color: '#10b981',
@@ -478,7 +478,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
                 style={{
                   margin: 0,
                   fontFamily: 'Inter, sans-serif',
-                  fontSize: '13px',
+                  fontSize: '0.8125rem',
                   color: 'var(--color-text-muted)',
                   lineHeight: 1.6,
                 }}
@@ -493,7 +493,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
         {/* ─── Footer ─── */}
         <div
           style={{
-            padding: '20px 40px 24px',
+            padding: '1.25rem 2.5rem 1.5rem',
             borderTop: '1px solid var(--color-border)',
             flexShrink: 0,
             display: 'flex',
@@ -504,7 +504,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           <span
             style={{
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '11px',
+              fontSize: '0.6875rem',
               textTransform: 'uppercase',
               letterSpacing: '0.15em',
               color: 'var(--color-text-dim)',
@@ -515,7 +515,7 @@ export default function SettingsPanel({ isOpen, onClose }) {
           <span
             style={{
               fontFamily: 'JetBrains Mono, monospace',
-              fontSize: '11px',
+              fontSize: '0.6875rem',
               color: 'var(--color-text-dim)',
             }}
           >
@@ -524,5 +524,5 @@ export default function SettingsPanel({ isOpen, onClose }) {
         </div>
       </div>
     </>
-  , portalTarget);
+    , portalTarget);
 }

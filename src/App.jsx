@@ -41,7 +41,7 @@ export default function App() {
   // Global right-click text styling menu listener
   useEffect(() => {
     const handleContextMenu = (e) => {
-      if (!isAuthenticated) return;
+      if (!isAuthenticated || currentScreen !== 'note') return;
       e.preventDefault();
       setContextMenuPos({ x: e.clientX, y: e.clientY });
       setIsContextMenuOpen(true);
@@ -49,7 +49,7 @@ export default function App() {
 
     window.addEventListener('contextmenu', handleContextMenu);
     return () => window.removeEventListener('contextmenu', handleContextMenu);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, currentScreen]);
 
   // Apply saved theme immediately on mount (before first paint)
   useEffect(() => {
@@ -163,23 +163,16 @@ export default function App() {
           {/* Global right-click settings panel */}
           <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
-          {/* Floating settings trigger button at bottom right (rendered when no HUD is active) */}
-          {(() => {
-            const wsType = currentWorkspaceId ? getWorkspaceType(currentWorkspaceId) : 'regular';
-            const showStandaloneSettings = 
-              currentScreen === 'note' || 
-              currentScreen === 'canvas' || 
-              (currentScreen === 'folders' && wsType === 'youtube');
-            return showStandaloneSettings && (
-              <button 
-                onClick={() => setSettingsOpen(true)}
-                className="fixed bottom-6 right-6 z-50 p-2.5 rounded-xl bg-surface/85 backdrop-blur-md border border-border/80 text-text-muted hover:text-text hover:bg-surface hover:scale-105 active:scale-95 shadow-2xl transition-all duration-200 cursor-pointer flex items-center justify-center"
-                title="Settings"
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </button>
-            );
-          })()}
+          {/* Floating settings trigger button at bottom right (rendered globally once authenticated) */}
+          {isAuthenticated && (
+            <button 
+              onClick={() => setSettingsOpen(true)}
+              className="fixed bottom-6 right-6 z-50 p-2.5 rounded-xl bg-surface/85 backdrop-blur-md border border-border/80 text-text-muted hover:text-text hover:bg-surface hover:scale-105 active:scale-95 shadow-2xl transition-all duration-200 cursor-pointer flex items-center justify-center"
+              title="Settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          )}
 
           {/* Custom Right-Click Context Menu for Text Styling */}
           {isContextMenuOpen && (

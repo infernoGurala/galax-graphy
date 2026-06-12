@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3, GripVertical, Settings } from 'lucide-react';
+import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3, GripVertical, Settings, Folder, FileText, Book, MoreVertical, Clock, Users } from 'lucide-react';
 
 const YoutubeIcon = ({ className = '', ...props }) => (
   <svg
@@ -17,6 +17,320 @@ const YoutubeIcon = ({ className = '', ...props }) => (
     <polygon points="10 15 15 12 10 9" />
   </svg>
 );
+
+const getWorkspaceGradient = (ws, isYoutube) => {
+  const wsId = ws.id || 'default';
+  if (isYoutube) {
+    const ytGradients = [
+      'from-rose-500 to-red-600',
+      'from-red-500 to-orange-600',
+      'from-rose-600 to-pink-600',
+      'from-rose-500 to-orange-500'
+    ];
+    let code = 0;
+    for (let i = 0; i < wsId.length; i++) {
+      code += wsId.charCodeAt(i);
+    }
+    return ytGradients[code % ytGradients.length];
+  } else {
+    const regularGradients = [
+      'from-indigo-500 to-purple-600',
+      'from-emerald-400 to-teal-600',
+      'from-cyan-400 to-blue-600',
+      'from-fuchsia-500 to-pink-600',
+      'from-violet-600 to-indigo-700'
+    ];
+    let code = 0;
+    for (let i = 0; i < wsId.length; i++) {
+      code += wsId.charCodeAt(i);
+    }
+    return regularGradients[code % regularGradients.length];
+  }
+};
+
+const getLastActiveTime = (ws, folders, notes, canvases) => {
+  const wsFolders = folders.filter(f => f.workspace_id === ws.id);
+  const wsNotes = notes.filter(n => n.workspace_id === ws.id);
+  const wsCanvases = canvases.filter(c => c.workspace_id === ws.id);
+  
+  let maxTime = new Date(ws.updated_at || ws.created_at || 0).getTime();
+  
+  wsFolders.forEach(f => {
+    const t = new Date(f.updated_at || f.created_at || 0).getTime();
+    if (t > maxTime) maxTime = t;
+  });
+  wsNotes.forEach(n => {
+    const t = new Date(n.updated_at || n.created_at || 0).getTime();
+    if (t > maxTime) maxTime = t;
+  });
+  wsCanvases.forEach(c => {
+    const t = new Date(c.updated_at || c.created_at || 0).getTime();
+    if (t > maxTime) maxTime = t;
+  });
+  
+  return maxTime;
+};
+
+const formatRelativeTime = (timestamp) => {
+  if (!timestamp) return 'Last active never';
+  const now = Date.now();
+  const diffMs = now - timestamp;
+  if (diffMs < 0) return 'Last active just now';
+  
+  const diffSec = Math.floor(diffMs / 1000);
+  if (diffSec < 60) return 'Last active just now';
+  
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `Last active ${diffMin}m ago`;
+  
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `Last active ${diffHr}h ago`;
+  
+  const diffDays = Math.floor(diffHr / 24);
+  return `Last active ${diffDays}d ago`;
+};
+
+const WorkspaceDashboardCard = ({
+  ws,
+  index,
+  totalCount,
+  isYoutube,
+  folders,
+  notes,
+  canvases,
+  editingId,
+  editingName,
+  setEditingName,
+  editingDesc,
+  setEditingDesc,
+  activeMenuId,
+  setActiveMenuId,
+  handleDragStart,
+  handleDragEnd,
+  handleDragOver,
+  handleDragEnter,
+  handleDragLeave,
+  handleDrop,
+  navigateToWorkspace,
+  handleTiltMouseMove,
+  handleTiltMouseLeave,
+  handleStartEditingWorkspace,
+  handleSaveWorkspaceEditing,
+  handleCancelRename,
+  handleDelete,
+  getWorkspaceDescription,
+  dragOverId,
+  dragOverPosition
+}) => {
+  const isEditing = editingId === ws.id;
+  const desc = getWorkspaceDescription(ws.id);
+  const wsFolders = folders.filter(f => f.workspace_id === ws.id);
+  const wsNotes = notes.filter(n => n.workspace_id === ws.id);
+  const wsCanvases = canvases.filter(c => c.workspace_id === ws.id);
+  const idxStr = `${index + 1 < 10 ? '0' : ''}${index + 1} / ${totalCount < 10 ? '0' : ''}${totalCount}`;
+  
+  // Count journals: notes that have "journal" in the title (case-insensitive)
+  const wsJournalsCount = wsNotes.filter(n => n.title.toLowerCase().includes('journal')).length;
+  
+  // Num collaborators: stable hash of workspace ID
+  const numCollaborators = (ws.name === 'PERMANENT' || ws.name?.toUpperCase() === 'PERMANENT') ? 1 : (ws.name === 'PROGRESS' || ws.name?.toUpperCase() === 'PROGRESS') ? 2 : (Math.abs(ws.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0)) % 3) + 1;
+  
+  // Active time calculation
+  const lastActiveTime = getLastActiveTime(ws, folders, notes, canvases);
+
+  const wsGradient = getWorkspaceGradient(ws, isYoutube);
+
+  return (
+    <div
+      className="relative"
+      onDragOver={(e) => handleDragOver(e, ws.id)}
+      onDragEnter={(e) => handleDragEnter(e, ws.id)}
+      onDragLeave={handleDragLeave}
+      onDrop={(e) => handleDrop(e, ws.id)}
+    >
+      {dragOverId === ws.id && dragOverPosition && (
+        <div
+          className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
+          style={{
+            top: dragOverPosition === 'top' ? '-10px' : 'auto',
+            bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
+          }}
+        >
+          <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+        </div>
+      )}
+      
+      <div
+        onClick={() => !isEditing && navigateToWorkspace(ws.id)}
+        onMouseMove={handleTiltMouseMove}
+        onMouseLeave={handleTiltMouseLeave}
+        draggable={!isEditing}
+        onDragStart={(e) => handleDragStart(e, ws.id)}
+        onDragEnd={handleDragEnd}
+        className="relative p-7 bg-[#0f1015]/75 backdrop-blur-xl border border-white/5 flex flex-col justify-between gap-6 transition-all duration-300 group hover:scale-[1.01] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:border-white/10 cursor-pointer min-h-[290px] rounded-2xl overflow-visible select-none animate-in fade-in duration-300"
+      >
+        <div className="card-glare-overlay" />
+        
+        {/* Left Border Neon Gradient */}
+        <div className={`absolute left-0 top-0 bottom-0 w-[5px] bg-gradient-to-b ${wsGradient} rounded-l-2xl z-20`} />
+
+        {/* Top row */}
+        <div className="flex items-center justify-between relative z-10 text-[10px] font-mono text-text-dim uppercase tracking-wider">
+          <div className="flex items-center gap-3">
+            <GripVertical 
+              className="w-4.5 h-4.5 text-text-dim/40 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing"
+              onClick={(e) => e.stopPropagation()} 
+            />
+            <div className="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-[#14151a] border border-white/5 text-text-dim tracking-normal">
+              {idxStr}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setActiveMenuId(activeMenuId === ws.id ? null : ws.id);
+              }}
+              className="p-2 rounded-lg bg-surface/50 border border-border/30 hover:bg-surface text-text-dim hover:text-text cursor-pointer transition-colors relative"
+              title="Options"
+            >
+              <MoreVertical className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Options Dropdown Menu */}
+        {activeMenuId === ws.id && (
+          <div 
+            className="absolute right-7 top-14 w-44 bg-surface/95 border border-border/85 rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5 z-40 animate-in fade-in slide-in-from-top-1 duration-100 font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={(e) => {
+                setActiveMenuId(null);
+                handleStartEditingWorkspace(e, ws.id, ws.name, desc);
+              }}
+              className="w-full text-left px-3 py-2.5 text-xs font-bold text-text hover:bg-surface-hover hover:text-accent rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+            >
+              Edit Details
+            </button>
+            <button
+              onClick={(e) => {
+                setActiveMenuId(null);
+                handleDelete(e, ws.id);
+              }}
+              className="w-full text-left px-3 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+            >
+              Delete
+            </button>
+          </div>
+        )}
+
+        {/* Title and Description */}
+        <div className="flex-grow flex flex-col gap-3 relative z-10">
+          <div className="flex items-start gap-4">
+            <div className={`w-15 h-15 rounded-2xl flex items-center justify-center font-sans font-extrabold text-white text-xl bg-gradient-to-br ${wsGradient} shadow-md border border-white/15 flex-shrink-0 select-none`}>
+              {ws.name ? ws.name.charAt(0).toUpperCase() : (isYoutube ? 'Y' : 'W')}
+            </div>
+            
+            {isEditing ? (
+              <div className="flex flex-col gap-2.5 w-full" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={editingName}
+                  onChange={(e) => setEditingName(e.target.value)}
+                  className="text-base font-extrabold text-text bg-[#14151a] border border-border/80 rounded-xl px-3.5 py-2 focus:outline-none focus:border-accent w-full font-sans"
+                  autoFocus
+                />
+                <textarea
+                  value={editingDesc}
+                  onChange={(e) => setEditingDesc(e.target.value)}
+                  className="text-xs text-text bg-[#14151a] border border-border/80 rounded-xl p-3 focus:outline-none focus:border-accent w-full resize-none font-sans"
+                  rows={2}
+                  placeholder="Enter workspace description..."
+                />
+                <div className="flex items-center gap-1.5 mt-1">
+                  <button
+                    onClick={(e) => handleSaveWorkspaceEditing(e, ws.id)}
+                    className="px-3.5 py-1.5 rounded-lg bg-accent text-white text-[10px] font-extrabold uppercase hover:bg-accent-hover transition-colors cursor-pointer border-none shadow-md active:scale-95"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelRename}
+                    className="px-3.5 py-1.5 rounded-lg bg-surface border border-border/60 text-text-muted text-[10px] font-extrabold uppercase hover:bg-surface/85 transition-colors cursor-pointer active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1 w-full min-w-0">
+                <h3 className="font-extrabold text-lg sm:text-xl text-text tracking-wide uppercase font-sans truncate">
+                  {ws.name}
+                </h3>
+                <div className={`h-[3px] w-12 bg-gradient-to-r ${wsGradient} rounded-full mt-1`} />
+                
+                <p className="text-xs sm:text-[13px] text-text-muted/80 leading-relaxed font-sans font-medium mt-2">
+                  {desc}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Container (only visible if not editing) */}
+        {!isEditing && (
+          <div className="grid grid-cols-3 gap-4.5 items-stretch relative z-10 my-1">
+            <div className="flex items-center gap-3 bg-surface/30 border border-border/20 rounded-xl p-3 select-none">
+              <div className="w-10 h-10 rounded-xl bg-[#14151a] border border-border/40 flex items-center justify-center text-text-muted flex-shrink-0">
+                <FileText className="w-5 h-5 text-text/70" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm sm:text-base font-black text-text leading-none">{wsNotes.length}</span>
+                <span className="text-[10px] font-mono text-text-dim font-bold uppercase tracking-wider mt-1">Documents</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 bg-surface/30 border border-border/20 rounded-xl p-3 select-none">
+              <div className="w-10 h-10 rounded-xl bg-[#14151a] border border-border/40 flex items-center justify-center text-text-muted flex-shrink-0">
+                <LayoutGrid className="w-5 h-5 text-text/70" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm sm:text-base font-black text-text leading-none">{wsCanvases.length}</span>
+                <span className="text-[10px] font-mono text-text-dim font-bold uppercase tracking-wider mt-1">Boards</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-surface/30 border border-border/20 rounded-xl p-3 select-none">
+              <div className="w-10 h-10 rounded-xl bg-[#14151a] border border-border/40 flex items-center justify-center text-text-muted flex-shrink-0">
+                <Book className="w-5 h-5 text-text/70" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm sm:text-base font-black text-text leading-none">{wsJournalsCount}</span>
+                <span className="text-[10px] font-mono text-text-dim font-bold uppercase tracking-wider mt-1">Journal</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer row */}
+        <div className="flex items-center justify-between border-t border-border/20 pt-4.5 relative z-10 text-[10.5px] font-mono font-bold text-text-dim uppercase tracking-wider font-sans">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4.5 h-4.5 text-text-dim/60" />
+            <span>{formatRelativeTime(lastActiveTime)}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Users className="w-4.5 h-4.5 text-text-dim/60" />
+            <span>{numCollaborators} collaborator{numCollaborators > 1 ? 's' : ''}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function WorkspaceScreen() {
   const {
@@ -51,6 +365,13 @@ export default function WorkspaceScreen() {
   const [dragOverPosition, setDragOverPosition] = useState(null); // 'top' | 'bottom'
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [activeMenuId, setActiveMenuId] = useState(null);
+
+  useEffect(() => {
+    const handleCloseMenus = () => setActiveMenuId(null);
+    window.addEventListener('click', handleCloseMenus);
+    return () => window.removeEventListener('click', handleCloseMenus);
+  }, []);
 
   // Get custom order of workspaces from pluginData
   const orderedWorkspaces = React.useMemo(() => {
@@ -791,174 +1112,68 @@ export default function WorkspaceScreen() {
 
       {/* Conditionally Render Layout Views */}
       {viewMode === 'dashboard' && (
-        <div className={`${hasBothTypes ? 'max-w-5xl' : 'max-w-2xl'} mx-auto px-6 pt-24 pb-16 flex flex-col gap-8 font-sans select-none relative z-10 animate-in fade-in duration-300`}>
-          <header className="flex flex-col gap-2.5 border-b border-border/60 pb-6">
-            <div className="flex items-center gap-2 font-mono text-[9px] text-text-muted uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 bg-[#10b981] rounded-full animate-pulse-dot" />
-              <span>Inferno Gurala // {time}</span>
+        <div className={`${hasBothTypes ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-6 pt-24 pb-16 flex flex-col gap-9 font-sans select-none relative z-10 animate-in fade-in duration-300`}>
+          <header className="flex items-center gap-6 border-b border-border/60 pb-7">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/20 flex-shrink-0">
+              <Folder className="w-7 h-7" />
             </div>
-            <h1 className="font-outfit-tight text-3xl sm:text-4.5xl font-extrabold tracking-[-0.03em] text-text bg-gradient-to-b from-title-from to-title-to bg-clip-text text-transparent">
-              GALAX GRAPHY
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="font-sans text-3xl sm:text-4xl font-extrabold tracking-tight text-text">
+                Workspaces
+              </h1>
+              <p className="text-sm text-text-muted mt-1 font-sans font-medium">
+                Your thinking environments
+              </p>
+            </div>
           </header>
 
           {/* Cards Stack */}
           <div className={hasBothTypes ? "grid grid-cols-1 md:grid-cols-2 gap-8 items-start" : "flex flex-col gap-6"}>
             {matchingWorkspaces.length === 0 ? (
-              <div className="py-12 text-center">
+              <div className="py-12 text-center col-span-full">
                 <p className="text-xs text-text-dim uppercase font-mono tracking-wider">No workspaces found</p>
               </div>
             ) : (
               <>
                 {regularWorkspaces.length > 0 && (
                   <div className="flex flex-col gap-4">
-                    <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">Workspaces</h2>
-                    <div className="flex flex-col gap-4.5">
-                      {regularWorkspaces.map((ws, index) => {
-                        const isEditing = editingId === ws.id;
-                        const desc = getWorkspaceDescription(ws.id);
-                        const wsFolders = folders.filter(f => f.workspace_id === ws.id);
-                        const wsNotes = notes.filter(n => n.workspace_id === ws.id);
-                        const wsCanvases = canvases.filter(c => c.workspace_id === ws.id);
-                        const idxStr = `[0${index + 1}/0${regularWorkspaces.length}]`;
-                        return (
-                          <div
-                            key={ws.id}
-                            className="relative"
-                            onDragOver={(e) => handleDragOver(e, ws.id)}
-                            onDragEnter={(e) => handleDragEnter(e, ws.id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, ws.id)}
-                          >
-                            {dragOverId === ws.id && dragOverPosition && (
-                              <div
-                                className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
-                                style={{
-                                  top: dragOverPosition === 'top' ? '-10px' : 'auto',
-                                  bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
-                                }}
-                              >
-                                <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
-                              </div>
-                            )}
-                            <div
-                              onClick={() => !isEditing && navigateToWorkspace(ws.id)}
-                              onMouseMove={handleTiltMouseMove}
-                              onMouseLeave={handleTiltMouseLeave}
-                              draggable={!isEditing}
-                              onDragStart={(e) => handleDragStart(e, ws.id)}
-                              onDragEnd={handleDragEnd}
-                              className="premium-card p-6.5 flex flex-col justify-between gap-4.5 cursor-pointer relative overflow-hidden transition-all duration-300 group hover:scale-[1.01] hover:shadow-[0_10px_35px_rgba(0,0,0,0.06)] min-h-[220px] rounded-2xl"
-                            >
-                              <div className="card-glare-overlay" />
-
-                              {/* Top row */}
-                              <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
-                                <div className="flex items-center gap-1.5">
-                                  <GripVertical 
-                                    className="w-3.5 h-3.5 text-text-dim/40 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing"
-                                    onClick={(e) => e.stopPropagation()} 
-                                  />
-                                  <span>{idxStr}</span>
-                                </div>
-                                <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[7px] border-border bg-surface/30 text-text-muted">
-                                  Workspace
-                                </span>
-                              </div>
-
-                              {/* Title and Description */}
-                              <div className="flex-grow flex flex-col gap-2 relative z-10">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-accent/15 text-accent border border-accent/20">
-                                    <Layers className="w-4 h-4" />
-                                  </div>
-                                  
-                                  {isEditing ? (
-                                    <input
-                                      type="text"
-                                      value={editingName}
-                                      onChange={(e) => setEditingName(e.target.value)}
-                                      className="text-base font-extrabold text-text bg-surface/50 border border-border/60 rounded px-2.5 py-0.5 focus:outline-none focus:border-accent w-full"
-                                      onClick={(e) => e.stopPropagation()}
-                                      autoFocus
-                                    />
-                                  ) : (
-                                    <h3 className="font-extrabold text-base sm:text-lg text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans truncate">
-                                      {ws.name}
-                                    </h3>
-                                  )}
-                                </div>
-
-                                {isEditing ? (
-                                  <textarea
-                                    value={editingDesc}
-                                    onChange={(e) => setEditingDesc(e.target.value)}
-                                    className="text-xs text-text leading-relaxed bg-surface/50 border border-border/60 rounded p-2 focus:outline-none focus:border-accent w-full resize-none font-sans mt-1"
-                                    rows={2.5}
-                                    onClick={(e) => e.stopPropagation()}
-                                    placeholder="Enter workspace description..."
-                                  />
-                                ) : (
-                                  <p className="text-[11px] text-text-muted leading-relaxed">
-                                    {desc}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Footer row */}
-                              <div className="flex items-center justify-between border-t border-border/10 pt-3 relative z-10">
-                                <div className="flex items-center gap-2 text-[9px] font-mono text-text-dim">
-                                  <span>{wsFolders.length} folders</span>
-                                  <span>•</span>
-                                  <span>{wsNotes.length} notes</span>
-                                  {wsCanvases.length > 0 && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{wsCanvases.length} boards</span>
-                                    </>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  {isEditing ? (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={(e) => handleSaveWorkspaceEditing(e, ws.id)}
-                                        className="px-2 py-1 rounded bg-accent text-white text-[10px] font-bold hover:bg-accent-hover transition-colors cursor-pointer border-none"
-                                      >
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={handleCancelRename}
-                                        className="px-2 py-1 rounded bg-surface border border-border/40 text-text-muted text-[10px] font-bold hover:bg-surface/80 transition-colors cursor-pointer"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={(e) => handleStartEditingWorkspace(e, ws.id, ws.name, desc)}
-                                        className="p-1 rounded bg-surface border border-border/40 text-text-dim hover:text-text hover:border-border/80 transition-colors cursor-pointer flex items-center justify-center"
-                                        title="Edit Details"
-                                      >
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => handleDelete(e, ws.id)}
-                                        className="p-1 rounded bg-red-500/5 border border-red-500/25 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer flex items-center justify-center"
-                                        title="Delete Workspace"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">General Workspaces</h2>
+                    <div className="flex flex-col gap-5">
+                      {regularWorkspaces.map((ws, index) => (
+                        <WorkspaceDashboardCard
+                          key={ws.id}
+                          ws={ws}
+                          index={index}
+                          totalCount={regularWorkspaces.length}
+                          isYoutube={false}
+                          folders={folders}
+                          notes={notes}
+                          canvases={canvases}
+                          editingId={editingId}
+                          editingName={editingName}
+                          setEditingName={setEditingName}
+                          editingDesc={editingDesc}
+                          setEditingDesc={setEditingDesc}
+                          activeMenuId={activeMenuId}
+                          setActiveMenuId={setActiveMenuId}
+                          handleDragStart={handleDragStart}
+                          handleDragEnd={handleDragEnd}
+                          handleDragOver={handleDragOver}
+                          handleDragEnter={handleDragEnter}
+                          handleDragLeave={handleDragLeave}
+                          handleDrop={handleDrop}
+                          navigateToWorkspace={navigateToWorkspace}
+                          handleTiltMouseMove={handleTiltMouseMove}
+                          handleTiltMouseLeave={handleTiltMouseLeave}
+                          handleStartEditingWorkspace={handleStartEditingWorkspace}
+                          handleSaveWorkspaceEditing={handleSaveWorkspaceEditing}
+                          handleCancelRename={handleCancelRename}
+                          handleDelete={handleDelete}
+                          getWorkspaceDescription={getWorkspaceDescription}
+                          dragOverId={dragOverId}
+                          dragOverPosition={dragOverPosition}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}
@@ -966,152 +1181,42 @@ export default function WorkspaceScreen() {
                 {youtubeWorkspaces.length > 0 && (
                   <div className="flex flex-col gap-4">
                     <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">YouTube Studios</h2>
-                    <div className="flex flex-col gap-4.5">
-                      {youtubeWorkspaces.map((ws, index) => {
-                        const isEditing = editingId === ws.id;
-                        const desc = getWorkspaceDescription(ws.id);
-                        const wsFolders = folders.filter(f => f.workspace_id === ws.id);
-                        const wsNotes = notes.filter(n => n.workspace_id === ws.id);
-                        const wsCanvases = canvases.filter(c => c.workspace_id === ws.id);
-                        const idxStr = `[0${index + 1}/0${youtubeWorkspaces.length}]`;
-                        return (
-                          <div
-                            key={ws.id}
-                            className="relative"
-                            onDragOver={(e) => handleDragOver(e, ws.id)}
-                            onDragEnter={(e) => handleDragEnter(e, ws.id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={(e) => handleDrop(e, ws.id)}
-                          >
-                            {dragOverId === ws.id && dragOverPosition && (
-                              <div
-                                className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
-                                style={{
-                                  top: dragOverPosition === 'top' ? '-10px' : 'auto',
-                                  bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
-                                }}
-                              >
-                                <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
-                              </div>
-                            )}
-                            <div
-                              onClick={() => !isEditing && navigateToWorkspace(ws.id)}
-                              onMouseMove={handleTiltMouseMove}
-                              onMouseLeave={handleTiltMouseLeave}
-                              draggable={!isEditing}
-                              onDragStart={(e) => handleDragStart(e, ws.id)}
-                              onDragEnd={handleDragEnd}
-                              className="premium-card p-6.5 flex flex-col justify-between gap-4.5 cursor-pointer relative overflow-hidden transition-all duration-300 group hover:scale-[1.01] hover:shadow-[0_10px_35px_rgba(0,0,0,0.06)] min-h-[220px] rounded-2xl"
-                            >
-                              <div className="card-glare-overlay" />
-
-                              {/* Top row */}
-                              <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
-                                <div className="flex items-center gap-1.5">
-                                  <GripVertical 
-                                    className="w-3.5 h-3.5 text-text-dim/40 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing"
-                                    onClick={(e) => e.stopPropagation()} 
-                                  />
-                                  <span>{idxStr}</span>
-                                </div>
-                                <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-red-500/25 bg-red-500/10 text-red-400">
-                                  YouTube
-                                </span>
-                              </div>
-
-                              {/* Title and Description */}
-                              <div className="flex-grow flex flex-col gap-2 relative z-10">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 text-red-400 border border-red-500/20">
-                                    <Video className="w-4 h-4" />
-                                  </div>
-                                  
-                                  {isEditing ? (
-                                    <input
-                                      type="text"
-                                      value={editingName}
-                                      onChange={(e) => setEditingName(e.target.value)}
-                                      className="text-base font-extrabold text-text bg-surface/50 border border-border/60 rounded px-2.5 py-0.5 focus:outline-none focus:border-accent w-full"
-                                      onClick={(e) => e.stopPropagation()}
-                                      autoFocus
-                                    />
-                                  ) : (
-                                    <h3 className="font-extrabold text-base sm:text-lg text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans truncate">
-                                      {ws.name}
-                                    </h3>
-                                  )}
-                                </div>
-
-                                {isEditing ? (
-                                  <textarea
-                                    value={editingDesc}
-                                    onChange={(e) => setEditingDesc(e.target.value)}
-                                    className="text-xs text-text leading-relaxed bg-surface/50 border border-border/60 rounded p-2 focus:outline-none focus:border-accent w-full resize-none font-sans mt-1"
-                                    rows={2.5}
-                                    onClick={(e) => e.stopPropagation()}
-                                    placeholder="Enter workspace description..."
-                                  />
-                                ) : (
-                                  <p className="text-[11px] text-text-muted leading-relaxed">
-                                    {desc}
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Footer row */}
-                              <div className="flex items-center justify-between border-t border-border/10 pt-3 relative z-10">
-                                <div className="flex items-center gap-2 text-[9px] font-mono text-text-dim">
-                                  <span>{wsFolders.length} folders</span>
-                                  <span>•</span>
-                                  <span>{wsNotes.length} notes</span>
-                                  {wsCanvases.length > 0 && (
-                                    <>
-                                      <span>•</span>
-                                      <span>{wsCanvases.length} boards</span>
-                                    </>
-                                  )}
-                                </div>
-
-                                <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  {isEditing ? (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={(e) => handleSaveWorkspaceEditing(e, ws.id)}
-                                        className="px-2 py-1 rounded bg-accent text-white text-[10px] font-bold hover:bg-accent-hover transition-colors cursor-pointer border-none"
-                                      >
-                                        Save
-                                      </button>
-                                      <button
-                                        onClick={handleCancelRename}
-                                        className="px-2 py-1 rounded bg-surface border border-border/40 text-text-muted text-[10px] font-bold hover:bg-surface/80 transition-colors cursor-pointer"
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={(e) => handleStartEditingWorkspace(e, ws.id, ws.name, desc)}
-                                        className="p-1 rounded bg-surface border border-border/40 text-text-dim hover:text-text hover:border-border/80 transition-colors cursor-pointer flex items-center justify-center"
-                                        title="Edit Details"
-                                      >
-                                        <Edit3 className="w-3.5 h-3.5" />
-                                      </button>
-                                      <button
-                                        onClick={(e) => handleDelete(e, ws.id)}
-                                        className="p-1 rounded bg-red-500/5 border border-red-500/25 text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors cursor-pointer flex items-center justify-center"
-                                        title="Delete Workspace"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className="flex flex-col gap-5">
+                      {youtubeWorkspaces.map((ws, index) => (
+                        <WorkspaceDashboardCard
+                          key={ws.id}
+                          ws={ws}
+                          index={index}
+                          totalCount={youtubeWorkspaces.length}
+                          isYoutube={true}
+                          folders={folders}
+                          notes={notes}
+                          canvases={canvases}
+                          editingId={editingId}
+                          editingName={editingName}
+                          setEditingName={setEditingName}
+                          editingDesc={editingDesc}
+                          setEditingDesc={setEditingDesc}
+                          activeMenuId={activeMenuId}
+                          setActiveMenuId={setActiveMenuId}
+                          handleDragStart={handleDragStart}
+                          handleDragEnd={handleDragEnd}
+                          handleDragOver={handleDragOver}
+                          handleDragEnter={handleDragEnter}
+                          handleDragLeave={handleDragLeave}
+                          handleDrop={handleDrop}
+                          navigateToWorkspace={navigateToWorkspace}
+                          handleTiltMouseMove={handleTiltMouseMove}
+                          handleTiltMouseLeave={handleTiltMouseLeave}
+                          handleStartEditingWorkspace={handleStartEditingWorkspace}
+                          handleSaveWorkspaceEditing={handleSaveWorkspaceEditing}
+                          handleCancelRename={handleCancelRename}
+                          handleDelete={handleDelete}
+                          getWorkspaceDescription={getWorkspaceDescription}
+                          dragOverId={dragOverId}
+                          dragOverPosition={dragOverPosition}
+                        />
+                      ))}
                     </div>
                   </div>
                 )}

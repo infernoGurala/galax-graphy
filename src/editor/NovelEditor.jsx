@@ -332,7 +332,7 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
           value={title}
           onChange={handleTitleChange}
           placeholder="Untitled Note"
-          className="w-full text-[32px] font-light bg-transparent border-none outline-none focus:outline-none focus:ring-0 placeholder:text-text-muted/30 text-text text-center"
+          className="w-full text-[2rem] font-light bg-transparent border-none outline-none focus:outline-none focus:ring-0 placeholder:text-text-muted/30 text-text text-center"
           style={{
             fontFamily: 'var(--font-sailec)',
             textAlign: 'center',

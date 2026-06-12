@@ -59,8 +59,13 @@ export default function ContextMenu({ x, y, onClose }) {
         top: `${position.top}px`,
         zIndex: 9999,
       }}
-      className="w-[280px] p-4 bg-surface/90 border border-border/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col gap-4.5 text-text animate-in zoom-in-95 duration-100 select-none font-sans"
+      className="w-[280px] p-4 bg-surface/90 border border-border/80 backdrop-blur-xl rounded-2xl shadow-2xl flex flex-col gap-4 text-text animate-in zoom-in-95 duration-100 select-none font-sans"
     >
+      {/* Tools Options Header */}
+      <div className="flex items-center justify-between border-b border-border/40 pb-2 mb-0.5">
+        <span className="text-[10px] uppercase tracking-wider font-extrabold text-accent font-mono">Tools Options</span>
+      </div>
+
       {/* Styles */}
       <div className="flex flex-col gap-1.5">
         <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted font-mono">Style</span>
