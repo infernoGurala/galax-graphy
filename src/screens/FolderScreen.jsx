@@ -52,20 +52,14 @@ export default function FolderScreen() {
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Spotlight tracking only — no 3D tilt (perspective blurs GPU-composited text)
     card.style.setProperty('--mouse-x', `${x}px`);
     card.style.setProperty('--mouse-y', `${y}px`);
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const maxTilt = card.tagName === 'ASIDE' ? 2 : 4;
-    const tiltX = -(y - centerY) / centerY * maxTilt;
-    const tiltY = (x - centerX) / centerX * maxTilt;
-    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-2px)`;
   };
 
   const handleTiltMouseLeave = (e) => {
     const card = e.currentTarget;
-    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transform = '';
   };
 
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -850,7 +844,7 @@ export default function FolderScreen() {
         backgroundSize: '32px 32px',
         touchAction: 'none'
       } : undefined}
-      className={`w-full ${viewMode === 'dashboard' ? 'min-h-screen' : 'h-[calc(100vh-68px)]'} bg-transparent relative select-none font-sans ${
+      className={`w-full h-full bg-transparent relative select-none font-sans ${
         viewMode === 'board' ? 'overflow-hidden cursor-grab active:cursor-grabbing' : 'overflow-y-auto'
       }`}
     >
@@ -885,7 +879,7 @@ export default function FolderScreen() {
                     onClick={(e) => handleCardClick(e, item)}
                     onMouseMove={handleTiltMouseMove}
                     onMouseLeave={handleTiltMouseLeave}
-                    className="premium-card p-6 flex flex-col gap-3.5 cursor-pointer relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group"
+                    className="premium-card p-6 flex flex-col gap-3.5 cursor-pointer relative overflow-hidden transition-all duration-300 hover:scale-[1.005] group"
                   >
                     <div className="card-glare-overlay" />
 
@@ -902,7 +896,7 @@ export default function FolderScreen() {
                       </span>
                     </div>
                     <div className="flex items-center justify-between relative z-10 mt-1">
-                      <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent transition-colors font-sans truncate pr-4">
+                      <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans truncate pr-4">
                         {item.name || 'Untitled'}
                       </h3>
                       <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
@@ -989,7 +983,7 @@ export default function FolderScreen() {
               left: `${pos.x}px`,
               top: `${pos.y}px`,
               pointerEvents: isCollapsed ? 'none' : (isSearching && !isMatched ? 'none' : 'auto'),
-              transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+              transition: 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
               zIndex: isMatched ? 30 : 10,
               opacity: isCollapsed ? 0 : 1,
               transform: isCollapsed ? 'scale(0)' : 'scale(1)'
@@ -998,7 +992,7 @@ export default function FolderScreen() {
             let extraClass = '';
             if (isSearching) {
               if (isMatched) {
-                cardStyle.transform = 'scale(1.08) translateY(-10px)';
+                cardStyle.transform = 'scale(1.01) translateY(-2px)';
                 cardStyle.opacity = 1;
                 extraClass = 'border-accent/80 shadow-[0_20px_50px_rgba(2,132,199,0.35)] ring-2 ring-accent/40';
               } else {
@@ -1188,7 +1182,7 @@ export default function FolderScreen() {
                               <tr 
                                 key={item.id}
                                 onClick={() => !isEditing && handleCardClick(null, item)}
-                                className="group hover:bg-[#0c0d14]/60 transition-colors duration-150 cursor-pointer"
+                                className="group hover:bg-surface transition-colors duration-150 cursor-pointer"
                               >
                                 <td className="py-4 px-6 font-medium text-text">
                                   {isEditing ? (
@@ -1285,7 +1279,7 @@ export default function FolderScreen() {
                               <tr 
                                 key={item.id}
                                 onClick={() => !isEditing && handleCardClick(null, item)}
-                                className="group hover:bg-[#0c0d14]/60 transition-colors duration-150 cursor-pointer"
+                                className="group hover:bg-surface transition-colors duration-150 cursor-pointer"
                               >
                                 <td className="py-4 px-6 font-medium text-text">
                                   {isEditing ? (
@@ -1652,31 +1646,20 @@ function ItemCard({
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Spotlight tracking only — no 3D tilt
     card.style.setProperty('--mouse-x', `${x}px`);
     card.style.setProperty('--mouse-y', `${y}px`);
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const maxTilt = 5;
-    const tiltX = -(y - centerY) / centerY * maxTilt;
-    const tiltY = (x - centerX) / centerX * maxTilt;
-    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-4px)`;
   };
 
   const handleMouseLeave = () => {
     const card = cardRef.current;
     if (!card) return;
-    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transform = '';
   };
 
   const mergedStyle = isAbsolute ? {
     ...cardStyle,
-    transformStyle: 'preserve-3d',
-    willChange: 'transform, opacity'
-  } : {
-    transformStyle: 'preserve-3d',
-    willChange: 'transform, opacity'
-  };
+  } : {};
 
   return (
     <div

@@ -24,21 +24,15 @@ export default function PasswordGate() {
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Spotlight tracking only — no 3D tilt
     card.style.setProperty('--mouse-x', `${x}px`);
     card.style.setProperty('--mouse-y', `${y}px`);
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const maxTilt = 5;
-    const tiltX = -(y - centerY) / centerY * maxTilt;
-    const tiltY = (x - centerX) / centerX * maxTilt;
-    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-2px)`;
   };
 
   const handleMouseLeave = () => {
     const card = cardRef.current;
     if (!card) return;
-    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transform = '';
   };
 
   return (
@@ -57,7 +51,7 @@ export default function PasswordGate() {
           [Authorization Required]
         </span>
 
-        <h2 className="text-2xl font-black text-text mb-2 tracking-tight font-sans text-center bg-gradient-to-b from-white to-white/80 bg-clip-text text-transparent">
+        <h2 className="text-2xl font-black text-text mb-2 tracking-tight font-sans text-center">
           Workspace Gate
         </h2>
         <p className="text-xs text-text-muted text-center mb-8 font-sans leading-relaxed px-2">

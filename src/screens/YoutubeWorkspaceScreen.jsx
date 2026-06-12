@@ -269,16 +269,16 @@ export default function YoutubeWorkspaceScreen() {
   if (!currentWorkspace) return null;
 
   return (
-    <div className="w-full min-h-[calc(100vh-68px)] bg-transparent text-text p-6 flex flex-col font-sans relative overflow-x-hidden">
+    <div className="w-full h-full overflow-y-auto bg-transparent text-text p-6 flex flex-col font-sans relative">
       
       {/* CSS Animations */}
       <style>{`
         @keyframes cardEntry {
-          0% { opacity: 0; transform: scale(0.92) translateY(20px); }
+          0% { opacity: 0; transform: scale(0.99) translateY(4px); }
           100% { opacity: 1; transform: scale(1) translateY(0); }
         }
         
-        .animate-card { animation: cardEntry 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+        .animate-card { animation: cardEntry 0.3s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
         
         .mesh-bg {
           background-image: radial-gradient(circle at 50% 15%, rgba(239, 68, 68, 0.08) 0%, transparent 65%);
@@ -521,21 +521,15 @@ function YoutubeVideoCard({
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Spotlight tracking only — no 3D tilt
     card.style.setProperty('--mouse-x', `${x}px`);
     card.style.setProperty('--mouse-y', `${y}px`);
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const maxTilt = 4;
-    const tiltX = -(y - centerY) / centerY * maxTilt;
-    const tiltY = (x - centerX) / centerX * maxTilt;
-    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-4px)`;
   };
 
   const handleMouseLeave = () => {
     const card = cardRef.current;
     if (!card) return;
-    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transform = '';
   };
 
   return (
@@ -545,8 +539,6 @@ function YoutubeVideoCard({
       onMouseLeave={handleMouseLeave}
       style={{ 
         animationDelay: `${idx * 0.05}s`,
-        transformStyle: 'preserve-3d',
-        willChange: 'transform, opacity'
       }}
       className={`animate-card opacity-0 bg-card border ${
         link.watched ? 'border-border/40 opacity-75' : 'border-border/70 hover:border-white/20'

@@ -102,7 +102,7 @@ export default function CanvasView() {
   const initialAppState = canvas?.data?.appState || {};
 
   return (
-    <div className="w-full h-[calc(100vh-68px)] bg-bg flex flex-col font-sans select-none">
+    <div className="w-full h-full bg-bg flex flex-col font-sans select-none">
       {/* Title & Navigation Header */}
       <div className="flex items-center gap-4 px-6 py-3 border-b border-border bg-surface/30">
         <button

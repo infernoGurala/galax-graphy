@@ -10,6 +10,7 @@ import CanvasView from './canvas/CanvasView';
 import SearchPalette from './components/SearchPalette';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConfirmationModal from './components/ConfirmationModal';
+import { applyTheme, getStoredTheme } from './lib/themes';
 
 export default function App() {
   const {
@@ -17,18 +18,18 @@ export default function App() {
     loadData,
     currentScreen,
     isLoading,
-    goBack,
-    navigateToWorkspaces,
     currentWorkspaceId,
     getWorkspaceType,
-    workspaceViewMode,
-    folderViewMode
+    goBack,
+    navigateToWorkspaces
   } = useStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [showIntro, setShowIntro] = useState(true);
 
-  const orb1Ref = useRef(null);
-  const orb2Ref = useRef(null);
+  // Apply saved theme immediately on mount (before first paint)
+  useEffect(() => {
+    applyTheme(getStoredTheme());
+  }, []);
 
   // Load data on initial mount once authenticated
   useEffect(() => {
@@ -44,53 +45,6 @@ export default function App() {
     }, 2000);
     return () => clearTimeout(timer);
   }, []);
-
-  // Drifting Background Gradient Listener
-  useEffect(() => {
-    let mouseX = window.innerWidth / 2;
-    let mouseY = window.innerHeight / 2;
-    let orb1X = 0;
-    let orb1Y = 0;
-    let orb2X = 0;
-    let orb2Y = 0;
-    let frameId;
-
-    const handleMouseMove = (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-
-    const updateOrbs = () => {
-      const target1X = (mouseX - window.innerWidth / 2) * 0.08;
-      const target1Y = (mouseY - window.innerHeight / 2) * 0.08;
-      const target2X = (mouseX - window.innerWidth / 2) * -0.06;
-      const target2Y = (mouseY - window.innerHeight / 2) * -0.06;
-
-      orb1X += (target1X - orb1X) * 0.04;
-      orb1Y += (target1Y - orb1Y) * 0.04;
-      orb2X += (target2X - orb2X) * 0.04;
-      orb2Y += (target2Y - orb2Y) * 0.04;
-
-      if (orb1Ref.current) {
-        orb1Ref.current.style.transform = `translate(${orb1X}px, ${orb1Y}px)`;
-      }
-      if (orb2Ref.current) {
-        orb2Ref.current.style.transform = `translate(${orb2X}px, ${orb2Y}px)`;
-      }
-
-      frameId = requestAnimationFrame(updateOrbs);
-    };
-
-    frameId = requestAnimationFrame(updateOrbs);
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      cancelAnimationFrame(frameId);
-    };
-  }, []);
-
   // Bind global keyboard shortcuts (Ctrl+Space = Home, Esc = Back, Alt+Space = Search)
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -118,6 +72,7 @@ export default function App() {
           e.preventDefault();
           goBack();
         }
+        return;
       }
 
       // Alt + Space (Search Database)
@@ -152,17 +107,12 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-bg text-text selection:bg-accent/30 selection:text-text flex flex-col font-sans relative overflow-x-hidden">
-      {/* Tactile paper grain & drifting orbs */}
-      <div className="grain-overlay" />
-      <div className="ambient-glow">
-        <div ref={orb1Ref} className="orb orb-1" />
-        <div ref={orb2Ref} className="orb orb-2" />
-      </div>
+    <div className="h-screen w-screen bg-bg text-text selection:bg-accent/30 selection:text-text flex flex-col font-sans relative overflow-hidden select-none">
+
 
       {/* Cinematic Text-Blur Boot Loader */}
       {showIntro && (
-        <div className="fixed inset-0 bg-[#020202] flex flex-col items-center justify-center z-[10000] pointer-events-none transition-opacity duration-500">
+        <div className="fixed inset-0 bg-bg flex flex-col items-center justify-center z-[10000] pointer-events-none transition-opacity duration-500">
           <div className="text-center flex flex-col items-center gap-[1.2rem]">
             <div className="font-sans text-[clamp(1.5rem,6vw,2.5rem)] font-extrabold text-white uppercase tracking-[0.22em] animate-[cinematicReveal_1.4s_cubic-bezier(0.16,1,0.3,1)_forwards]">
               GALAX GRAPHY
@@ -181,11 +131,11 @@ export default function App() {
         <PasswordGate />
       ) : (
         <>
-          {/* Sleek top navigation */}
-          <TopBar />
+          {/* Sleek top navigation styled like macOS Notes toolbar */}
+          <TopBar onSearchTrigger={() => setSearchOpen(prev => !prev)} />
           
           {/* Primary content area */}
-          <main className="flex-1 w-full relative z-10 flex flex-col">
+          <main className="flex-grow w-full relative z-10 min-h-0">
             {isLoading ? (
               <div className="absolute inset-0 flex items-center justify-center bg-bg/50 backdrop-blur-sm z-30 select-none">
                 <div className="flex flex-col items-center gap-3">

@@ -41,7 +41,7 @@ export default function NoteScreen() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-transparent">
+    <div className="w-full h-full overflow-y-auto bg-transparent">
       <div className="max-w-[720px] mx-auto px-6 py-12">
         
         {/* Navigation Action & Save Status Indicator */}

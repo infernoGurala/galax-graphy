@@ -10,6 +10,30 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <!-- Apply saved theme before React hydrates to prevent flash -->
+    <script>
+      (function() {
+        var theme = localStorage.getItem('galax_theme') || 'nebula';
+        var themes = {
+          nebula: { bg: '#1A191C', text: '#E8EFEF', textMuted: '#6B6A6E', textDim: '#48474A', surface: '#242328', card: '#242328', border: '#2E2D31', accent: '#8b5cf6', accentHover: '#a78bfa', accentCyan: '#06b6d4' },
+          abyss:  { bg: '#111127', text: '#EBF2FF', textMuted: '#5C5C7A', textDim: '#3A3A52', surface: '#1A1A35', card: '#1A1A35', border: '#26263F', accent: '#818cf8', accentHover: '#a5b4fc', accentCyan: '#22d3ee' }
+        };
+        var t = themes[theme] || themes.nebula;
+        var r = document.documentElement;
+        r.setAttribute('data-theme', theme);
+        r.style.setProperty('--color-bg', t.bg);
+        r.style.setProperty('--color-text', t.text);
+        r.style.setProperty('--color-text-muted', t.textMuted);
+        r.style.setProperty('--color-text-dim', t.textDim);
+        r.style.setProperty('--color-surface', t.surface);
+        r.style.setProperty('--color-card', t.card);
+        r.style.setProperty('--color-border', t.border);
+        r.style.setProperty('--color-accent', t.accent);
+        r.style.setProperty('--color-accent-hover', t.accentHover);
+        r.style.setProperty('--color-accent-cyan', t.accentCyan);
+        r.style.backgroundColor = t.bg;
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

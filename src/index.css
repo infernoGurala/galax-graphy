@@ -2,13 +2,14 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg: #030303;
-  --color-text: #ffffff;
-  --color-text-muted: rgba(255, 255, 255, 0.6);
-  --color-text-dim: rgba(255, 255, 255, 0.35);
-  --color-surface: rgba(255, 255, 255, 0.03);
-  --color-card: rgba(255, 255, 255, 0.015);
-  --color-border: rgba(255, 255, 255, 0.06);
+  /* Default: Nebula theme — bg #1A191C / text #E8EFEF → CR 15.02 */
+  --color-bg: #1A191C;
+  --color-text: #E8EFEF;
+  --color-text-muted: #6B6A6E;
+  --color-text-dim: #48474A;
+  --color-surface: #242328;
+  --color-card: #242328;
+  --color-border: #2E2D31;
   --color-accent: #8b5cf6;
   --color-accent-hover: #a78bfa;
   --color-accent-cyan: #06b6d4;
@@ -19,12 +20,47 @@
 
 /* Global Reset & Base Styles */
 :root {
-  background-color: #030303;
-  color: #ffffff;
+  background-color: #1A191C;
+  color: #E8EFEF;
   font-family: 'Inter', 'Outfit', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ======================================
+   THEME: Nebula (default) — CR 15.02
+   bg: #1A191C  /  text: #E8EFEF
+====================================== */
+[data-theme="nebula"] {
+  --color-bg: #1A191C;
+  --color-text: #E8EFEF;
+  --color-text-muted: #6B6A6E;
+  --color-text-dim: #48474A;
+  --color-surface: #242328;
+  --color-card: #242328;
+  --color-border: #2E2D31;
+  --color-accent: #8b5cf6;
+  --color-accent-hover: #a78bfa;
+  --color-accent-cyan: #06b6d4;
+}
+
+/* ======================================
+   THEME: Abyss — CR 16.48
+   bg: #111127  /  text: #EBF2FF
+====================================== */
+[data-theme="abyss"] {
+  --color-bg: #111127;
+  --color-text: #EBF2FF;
+  --color-text-muted: #5C5C7A;
+  --color-text-dim: #3A3A52;
+  --color-surface: #1A1A35;
+  --color-card: #1A1A35;
+  --color-border: #26263F;
+  --color-accent: #818cf8;
+  --color-accent-hover: #a5b4fc;
+  --color-accent-cyan: #22d3ee;
+}
+
 
 body {
   margin: 0;
@@ -149,8 +185,6 @@ body {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.015);
   border: 1px solid rgba(255, 255, 255, 0.06);
-  transform-style: preserve-3d;
-  will-change: transform, opacity;
   transition: background 0.3s, border-color 0.3s, transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -228,10 +262,10 @@ body {
 
 @keyframes cinematicReveal {
   0% {
-    filter: blur(15px);
+    filter: blur(4px);
     opacity: 0;
-    letter-spacing: 0.6em;
-    transform: scale(0.9);
+    letter-spacing: 0.25em;
+    transform: scale(0.98);
   }
   100% {
     filter: blur(0);
@@ -471,4 +505,161 @@ div[data-dragging="true"] {
   animation: logoGlide 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: left top;
 }
+
+/* macOS Redesign Styles */
+.macos-desktop {
+  background: radial-gradient(circle at 10% 20%, #1e1b4b 0%, transparent 45%),
+              radial-gradient(circle at 90% 80%, #09333f 0%, transparent 45%),
+              radial-gradient(circle at 50% 50%, #111827 0%, #030712 100%);
+  background-size: 200% 200%;
+  animation: macosWallpaperDrift 40s ease infinite;
+}
+
+@keyframes macosWallpaperDrift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.mac-window {
+  background: rgba(18, 18, 24, 0.68) !important;
+  backdrop-filter: blur(35px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(35px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: col;
+  overflow: hidden;
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, opacity 0.3s cubic-bezier(0.25, 1, 0.5, 1), transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+  will-change: transform, opacity, width, height, left, top;
+}
+
+.mac-window-active {
+  border-color: rgba(139, 92, 246, 0.22) !important;
+  box-shadow: 0 40px 100px rgba(139, 92, 246, 0.15), 0 30px 80px rgba(0, 0, 0, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+.mac-titlebar {
+  background: rgba(28, 28, 36, 0.45) !important;
+  backdrop-filter: blur(10px) !important;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.07) !important;
+  height: 38px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  user-select: none;
+  cursor: grab;
+}
+
+.mac-titlebar:active {
+  cursor: grabbing;
+}
+
+.mac-window-content {
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 38px);
+  position: relative;
+  overflow: hidden;
+}
+
+.mac-dock-container {
+  position: fixed;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 900;
+  pointer-events: auto;
+}
+
+.mac-dock {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 20px;
+  background: rgba(22, 22, 28, 0.42) !important;
+  backdrop-filter: blur(35px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(35px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  transform-origin: bottom center;
+}
+
+/* Minimize scale down and translate to Dock coordinates */
+.mac-window-minimized {
+  transform: scale(0.01) translate3d(var(--dock-x, 0px), var(--dock-y, 600px), 0px) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Traffic light button styling */
+.traffic-btn {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  position: relative;
+  border: 0.5px solid rgba(0, 0, 0, 0.15);
+  transition: filter 0.15s ease;
+  cursor: pointer;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: 0 !important;
+  overflow: hidden;
+  display: block;
+}
+
+.traffic-btn:hover {
+  filter: brightness(0.85);
+}
+
+.traffic-btn-close {
+  background-color: #ff5f56;
+}
+
+.traffic-btn-minimize {
+  background-color: #ffbd2e;
+}
+
+.traffic-btn-maximize {
+  background-color: #27c93f;
+}
+
+/* Show icons in traffic lights on hover */
+.traffic-lights-group:hover .traffic-icon {
+  opacity: 1;
+}
+
+.traffic-icon {
+  font-size: 6px;
+  line-height: 1;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 12px;
+  height: 12px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  color: rgba(0, 0, 0, 0.8);
+  pointer-events: none;
+  font-weight: bold;
+}
+
+/* Hide Excalidraw UI elements that clash with window containers */
+.excalidraw .layer-ui__wrapper {
+  background: transparent !important;
+}
+
+/* Remove default scroll padding on workspace containers when inside window */
+.mac-window .w-full.h-screen {
+  height: 100% !important;
+}
+
 

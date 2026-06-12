@@ -5,6 +5,9 @@
 - No sidebar — ever
 - Full-width content, maximum breathing room
 - Every screen shows ONE thing at a time
+- Regular fonts with thin fonts contrasts. 
+- sharp text to background color contrasts. 
+- High performance, quick access tools. 
 
 ---
 

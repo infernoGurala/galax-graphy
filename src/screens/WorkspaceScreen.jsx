@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
-import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3 } from 'lucide-react';
+import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3, GripVertical } from 'lucide-react';
 
 const YoutubeIcon = ({ className = '', ...props }) => (
   <svg
@@ -30,6 +30,7 @@ export default function WorkspaceScreen() {
     saveGroups,
     getGroups,
     getPluginData,
+    savePluginData,
     getWorkspaceType,
     saveWorkspaceMetadata,
     showConfirm,
@@ -41,8 +42,105 @@ export default function WorkspaceScreen() {
   const pluginData = useStore(state => state.pluginData);
   const [groups, setGroups] = useState([]);
   const [hoveredGroupId, setHoveredGroupId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+  const [dragOverPosition, setDragOverPosition] = useState(null); // 'top' | 'bottom'
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+
+  // Get custom order of workspaces from pluginData
+  const orderedWorkspaces = React.useMemo(() => {
+    const orderRecord = pluginData.find(
+      p => p.plugin_id === 'workspace-order' && p.ref_id === 'root' && p.namespace === 'list'
+    );
+    const customOrder = orderRecord?.data?.order || [];
+
+    const sorted = [...workspaces];
+    if (customOrder && customOrder.length > 0) {
+      sorted.sort((a, b) => {
+        const idxA = customOrder.indexOf(a.id);
+        const idxB = customOrder.indexOf(b.id);
+        
+        const valA = idxA !== -1 ? idxA : Infinity;
+        const valB = idxB !== -1 ? idxB : Infinity;
+        
+        if (valA === valB) {
+          return new Date(a.created_at) - new Date(b.created_at);
+        }
+        return valA - valB;
+      });
+    }
+    return sorted;
+  }, [workspaces, pluginData]);
+
+  const handleDragStart = (e, wsId) => {
+    e.stopPropagation();
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', wsId);
+  };
+
+  const handleDragEnd = () => {
+    setDragOverId(null);
+    setDragOverPosition(null);
+  };
+
+  const handleDragOver = (e, wsId) => {
+    e.preventDefault();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const relativeY = e.clientY - rect.top;
+    const isTopHalf = relativeY < rect.height / 2;
+    const position = isTopHalf ? 'top' : 'bottom';
+    
+    if (dragOverId !== wsId) {
+      setDragOverId(wsId);
+    }
+    if (dragOverPosition !== position) {
+      setDragOverPosition(position);
+    }
+  };
+
+  const handleDragEnter = (e, wsId) => {
+    e.preventDefault();
+    setDragOverId(wsId);
+  };
+
+  const handleDragLeave = (e) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverId(null);
+      setDragOverPosition(null);
+    }
+  };
+
+  const handleDrop = async (e, targetWsId) => {
+    e.preventDefault();
+    setDragOverId(null);
+    setDragOverPosition(null);
+    const draggedWsId = e.dataTransfer.getData('text/plain');
+    if (!draggedWsId || draggedWsId === targetWsId) return;
+
+    const wsIds = orderedWorkspaces.map(w => w.id);
+    const draggedIdx = wsIds.indexOf(draggedWsId);
+    const targetIdx = wsIds.indexOf(targetWsId);
+
+    if (draggedIdx !== -1 && targetIdx !== -1) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const relativeY = e.clientY - rect.top;
+      const isTopHalf = relativeY < rect.height / 2;
+
+      const newIds = [...wsIds];
+      newIds.splice(draggedIdx, 1);
+
+      let insertIdx;
+      if (isTopHalf) {
+        insertIdx = draggedIdx < targetIdx ? targetIdx - 1 : targetIdx;
+      } else {
+        insertIdx = draggedIdx < targetIdx ? targetIdx : targetIdx + 1;
+      }
+
+      newIds.splice(insertIdx, 0, draggedWsId);
+      
+      await savePluginData('workspace-order', 'list', 'root', { order: newIds });
+    }
+  };
   const [isCreating, setIsCreating] = useState(false);
   const [creationType, setCreationType] = useState('workspace'); // 'workspace' or 'group'
   const [newName, setNewName] = useState('');
@@ -77,20 +175,14 @@ export default function WorkspaceScreen() {
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Update spotlight position only — no 3D tilt (3D perspective blurs text)
     card.style.setProperty('--mouse-x', `${x}px`);
     card.style.setProperty('--mouse-y', `${y}px`);
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const maxTilt = card.tagName === 'ASIDE' ? 2 : 4;
-    const tiltX = -(y - centerY) / centerY * maxTilt;
-    const tiltY = (x - centerX) / centerX * maxTilt;
-    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-2px)`;
   };
 
   const handleTiltMouseLeave = (e) => {
     const card = e.currentTarget;
-    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transform = '';
   };
 
   const boardRef = useRef(null);
@@ -634,8 +726,8 @@ export default function WorkspaceScreen() {
   };
 
   const matchingWorkspaces = searchQuery
-    ? workspaces.filter(ws => ws.name.toLowerCase().includes(searchQuery.toLowerCase()))
-    : workspaces;
+    ? orderedWorkspaces.filter(ws => ws.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : orderedWorkspaces;
 
   // Convert zoom scale to display percent
   const zoomPercent = Math.round(zoom * 100);
@@ -652,9 +744,7 @@ export default function WorkspaceScreen() {
         backgroundSize: '32px 32px',
         touchAction: 'none'
       } : undefined}
-      className={`w-full ${
-        viewMode === 'dashboard' ? 'h-screen' : 'h-[calc(100vh-68px)]'
-      } bg-transparent relative select-none font-sans ${
+      className={`w-full h-full bg-transparent relative select-none font-sans ${
         viewMode === 'board' ? 'overflow-hidden cursor-grab active:cursor-grabbing' : 'overflow-y-auto'
       }`}
     >
@@ -674,49 +764,145 @@ export default function WorkspaceScreen() {
           </header>
 
           {/* Cards Stack */}
-          <div className="flex flex-col gap-4.5">
+          <div className="flex flex-col gap-6">
             {matchingWorkspaces.length === 0 ? (
               <div className="py-12 text-center">
                 <p className="text-xs text-text-dim uppercase font-mono tracking-wider">No workspaces found</p>
               </div>
             ) : (
-              matchingWorkspaces.map((ws, index) => {
-                const wsType = getWorkspaceType(ws.id);
-                const idxStr = `[0${index + 1}/0${matchingWorkspaces.length}]`;
+              (() => {
+                const regularWorkspaces = matchingWorkspaces.filter(ws => getWorkspaceType(ws.id) !== 'youtube');
+                const youtubeWorkspaces = matchingWorkspaces.filter(ws => getWorkspaceType(ws.id) === 'youtube');
                 return (
-                  <div
-                    key={ws.id}
-                    onClick={() => navigateToWorkspace(ws.id)}
-                    onMouseMove={handleTiltMouseMove}
-                    onMouseLeave={handleTiltMouseLeave}
-                    className="premium-card p-6 flex flex-col gap-3.5 cursor-pointer relative overflow-hidden transition-all duration-300 hover:scale-[1.02] group"
-                  >
-                    <div className="card-glare-overlay" />
+                  <>
+                    {regularWorkspaces.length > 0 && (
+                      <div className="flex flex-col gap-4">
+                        <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">Workspaces</h2>
+                        <div className="flex flex-col gap-4.5">
+                          {regularWorkspaces.map((ws, index) => {
+                            const idxStr = `[0${index + 1}/0${regularWorkspaces.length}]`;
+                            return (
+                              <div
+                                key={ws.id}
+                                className="relative"
+                                onDragOver={(e) => handleDragOver(e, ws.id)}
+                                onDragEnter={(e) => handleDragEnter(e, ws.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, ws.id)}
+                              >
+                                {dragOverId === ws.id && dragOverPosition && (
+                                  <div 
+                                    className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
+                                    style={{
+                                      top: dragOverPosition === 'top' ? '-10px' : 'auto',
+                                      bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
+                                    }}
+                                  >
+                                    <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+                                  </div>
+                                )}
+                                <div
+                                  onClick={() => navigateToWorkspace(ws.id)}
+                                  onMouseMove={handleTiltMouseMove}
+                                  onMouseLeave={handleTiltMouseLeave}
+                                  draggable={true}
+                                  onDragStart={(e) => handleDragStart(e, ws.id)}
+                                  onDragEnd={handleDragEnd}
+                                  className="premium-card p-6 flex flex-col gap-3.5 cursor-grab active:cursor-grabbing relative overflow-hidden transition-all duration-300 group hover:scale-[1.005]"
+                                >
+                                  <div className="card-glare-overlay" />
 
-                    <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
-                      <span>{idxStr}</span>
-                      <span className={`px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] ${
-                        wsType === 'youtube'
-                          ? 'border-red-500/10 bg-red-500/5 text-red-400'
-                          : 'border-white/10 bg-white/5 text-white/70'
-                      }`}>
-                        {wsType === 'youtube' ? 'YouTube' : 'Workspace'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between relative z-10 mt-1">
-                      <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent transition-colors font-sans">
-                        {ws.name}
-                      </h3>
-                      <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
-                    </div>
-                    <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
-                      {wsType === 'youtube'
-                        ? 'Integrated YouTube workspace with interactive video player, custom notes manager, and progress trackers.'
-                        : 'Multi-layer document studio containing text files, folders, and standalone graphics boards.'}
-                    </p>
-                  </div>
+                                  <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
+                                    <div className="flex items-center gap-1.5">
+                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-white/60 transition-colors cursor-grab active:cursor-grabbing" />
+                                      <span>{idxStr}</span>
+                                    </div>
+                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-white/10 bg-white/5 text-white/70">
+                                      Workspace
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between relative z-10 mt-1">
+                                    <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
+                                      {ws.name}
+                                    </h3>
+                                    <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                                  </div>
+                                  <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
+                                    Multi-layer document studio containing text files, folders, and standalone graphics boards.
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {youtubeWorkspaces.length > 0 && (
+                      <div className="flex flex-col gap-4 mt-2">
+                        <h2 className="text-[10px] font-mono text-text-muted uppercase tracking-[0.2em] mb-1">YouTube Studios</h2>
+                        <div className="flex flex-col gap-4.5">
+                          {youtubeWorkspaces.map((ws, index) => {
+                            const idxStr = `[0${index + 1}/0${youtubeWorkspaces.length}]`;
+                            return (
+                              <div
+                                key={ws.id}
+                                className="relative"
+                                onDragOver={(e) => handleDragOver(e, ws.id)}
+                                onDragEnter={(e) => handleDragEnter(e, ws.id)}
+                                onDragLeave={handleDragLeave}
+                                onDrop={(e) => handleDrop(e, ws.id)}
+                              >
+                                {dragOverId === ws.id && dragOverPosition && (
+                                  <div 
+                                    className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
+                                    style={{
+                                      top: dragOverPosition === 'top' ? '-10px' : 'auto',
+                                      bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
+                                    }}
+                                  >
+                                    <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+                                  </div>
+                                )}
+                                <div
+                                  onClick={() => navigateToWorkspace(ws.id)}
+                                  onMouseMove={handleTiltMouseMove}
+                                  onMouseLeave={handleTiltMouseLeave}
+                                  draggable={true}
+                                  onDragStart={(e) => handleDragStart(e, ws.id)}
+                                  onDragEnd={handleDragEnd}
+                                  className="premium-card p-6 flex flex-col gap-3.5 cursor-grab active:cursor-grabbing relative overflow-hidden transition-all duration-300 group hover:scale-[1.005]"
+                                >
+                                  <div className="card-glare-overlay" />
+
+                                  <div className="flex items-center justify-between relative z-10 text-[9px] font-mono text-text-dim uppercase tracking-wider">
+                                    <div className="flex items-center gap-1.5">
+                                      <GripVertical className="w-3 h-3 text-text-dim/60 group-hover:text-white/60 transition-colors cursor-grab active:cursor-grabbing" />
+                                      <span>{idxStr}</span>
+                                    </div>
+                                    <span className="px-2.5 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] border-red-500/10 bg-red-500/5 text-red-400">
+                                      YouTube
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between relative z-10 mt-1">
+                                    <h3 className="font-extrabold text-base text-text tracking-tight group-hover:text-accent-hover transition-colors font-sans">
+                                      {ws.name}
+                                    </h3>
+                                    <span className="text-text-muted group-hover:text-white transition-all transform group-hover:translate-x-1.5 duration-200 text-lg">&rarr;</span>
+                                  </div>
+                                  <p className="text-[11px] text-text-muted leading-relaxed relative z-10">
+                                    Integrated YouTube workspace with interactive video player, custom notes manager, and progress trackers.
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 );
-              })
+              })()
             )}
           </div>
         </div>
@@ -789,7 +975,7 @@ export default function WorkspaceScreen() {
               left: `${pos.x}px`,
               top: `${pos.y}px`,
               pointerEvents: isCollapsed ? 'none' : (isSearching && !isMatched ? 'none' : 'auto'),
-              transition: 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
+              transition: 'transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), left 0.4s cubic-bezier(0.25, 1, 0.5, 1), top 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
               zIndex: isMatched ? 30 : 10,
               opacity: isCollapsed ? 0 : 1,
               transform: isCollapsed ? 'scale(0)' : 'scale(1)'
@@ -800,7 +986,7 @@ export default function WorkspaceScreen() {
               if (isCollapsed) {
                 // Keep scale(0)
               } else if (isMatched) {
-                cardStyle.transform = 'scale(1.08) translateY(-10px)';
+                cardStyle.transform = 'scale(1.01) translateY(-2px)';
                 cardStyle.opacity = 1;
                 extraClass = 'border-white/30 shadow-[0_15px_40px_rgba(255,255,255,0.08)] ring-1 ring-white/20';
               } else {
@@ -992,7 +1178,7 @@ export default function WorkspaceScreen() {
                               <tr 
                                 key={ws.id}
                                 onClick={() => editingId !== ws.id && navigateToWorkspace(ws.id)}
-                                className="group hover:bg-[#0c0d14]/60 transition-colors duration-150 cursor-pointer"
+                                className="group hover:bg-surface transition-colors duration-150 cursor-pointer"
                               >
                                 <td className="py-4 px-6 font-medium text-text">
                                   {isEditing ? (
@@ -1084,7 +1270,7 @@ export default function WorkspaceScreen() {
                               <tr 
                                 key={ws.id}
                                 onClick={() => editingId !== ws.id && navigateToWorkspace(ws.id)}
-                                className="group hover:bg-[#0c0d14]/60 transition-colors duration-150 cursor-pointer"
+                                className="group hover:bg-surface transition-colors duration-150 cursor-pointer"
                               >
                                 <td className="py-4 px-6 font-medium text-text">
                                   {isEditing ? (
@@ -1515,31 +1701,20 @@ function WorkspaceCard({
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
+    // Spotlight tracking only — no 3D tilt (perspective blurs GPU-composited text)
     card.style.setProperty('--mouse-x', `${x}px`);
     card.style.setProperty('--mouse-y', `${y}px`);
-
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    const maxTilt = 5;
-    const tiltX = -(y - centerY) / centerY * maxTilt;
-    const tiltY = (x - centerX) / centerX * maxTilt;
-    card.style.transform = `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(-4px)`;
   };
 
   const handleMouseLeave = () => {
     const card = cardRef.current;
     if (!card) return;
-    card.style.transform = 'perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+    card.style.transform = '';
   };
 
   const mergedStyle = isAbsolute ? {
     ...cardStyle,
-    transformStyle: 'preserve-3d',
-    willChange: 'transform, opacity'
-  } : {
-    transformStyle: 'preserve-3d',
-    willChange: 'transform, opacity'
-  };
+  } : {};
 
   return (
     <div
