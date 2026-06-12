@@ -1,0 +1,2 @@
+- Strictly NO LGBTQ+ Colors in the UI.
+- 

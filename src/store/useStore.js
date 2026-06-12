@@ -275,6 +275,26 @@ export const useStore = create((set, get) => ({
     }
   },
 
+  updateWorkspace: async (id, fields) => {
+    const updated_at = new Date().toISOString();
+    set(state => {
+      const workspaces = state.workspaces.map(w => w.id === id ? { ...w, ...fields, updated_at } : w);
+      if (!isSupabaseConfigured) {
+        localStorage.setItem(LS_KEYS.WORKSPACES, JSON.stringify(workspaces));
+      }
+      return { workspaces };
+    });
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase.from('workspaces').update({ ...fields, updated_at }).eq('id', id);
+        if (error) throw error;
+      } catch (err) {
+        console.error('Failed to sync updated workspace to Supabase:', err);
+      }
+    }
+  },
+
   deleteWorkspace: async (id) => {
     set(state => {
       const workspaces = state.workspaces.filter(w => w.id !== id);

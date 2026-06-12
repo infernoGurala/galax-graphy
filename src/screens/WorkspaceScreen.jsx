@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store/useStore';
+import * as Lucide from 'lucide-react';
 import { Kanban, LayoutGrid, List, Video, Grid, Layers, Plus, Trash2, Edit3, GripVertical, Settings, Folder, FileText, Book, MoreVertical, Clock, Users } from 'lucide-react';
 
 const YoutubeIcon = ({ className = '', ...props }) => (
@@ -18,34 +19,68 @@ const YoutubeIcon = ({ className = '', ...props }) => (
   </svg>
 );
 
-const getWorkspaceGradient = (ws, isYoutube) => {
-  const wsId = ws.id || 'default';
+const ALL_ICON_NAMES = Object.keys(Lucide).filter(key => 
+  /^[A-Z]/.test(key) && 
+  (typeof Lucide[key] === 'object' || typeof Lucide[key] === 'function') &&
+  !key.endsWith('Icon') &&
+  key !== 'LucideIcon' &&
+  key !== 'createReactComponent'
+).sort();
+
+const getWorkspaceColor = (ws, isYoutube) => {
+  const wsId = ws?.id || 'default';
   if (isYoutube) {
-    const ytGradients = [
-      'from-rose-500 to-red-600',
-      'from-red-500 to-orange-600',
-      'from-rose-600 to-pink-600',
-      'from-rose-500 to-orange-500'
-    ];
-    let code = 0;
-    for (let i = 0; i < wsId.length; i++) {
-      code += wsId.charCodeAt(i);
-    }
-    return ytGradients[code % ytGradients.length];
+    return {
+      bg: 'bg-red-500/5 dark:bg-red-500/10',
+      border: 'border-red-500/20 dark:border-red-500/30',
+      text: 'text-red-500 dark:text-red-400',
+      badge: 'border-red-500/20 bg-red-500/5 text-red-500 dark:text-red-400'
+    };
   } else {
-    const regularGradients = [
-      'from-indigo-500 to-purple-600',
-      'from-emerald-400 to-teal-600',
-      'from-cyan-400 to-blue-600',
-      'from-fuchsia-500 to-pink-600',
-      'from-violet-600 to-indigo-700'
+    const colors = [
+      // Accent Blue
+      {
+        bg: 'bg-blue-500/5 dark:bg-blue-500/10',
+        border: 'border-blue-500/20 dark:border-blue-500/30',
+        text: 'text-blue-500 dark:text-blue-400',
+        badge: 'border-blue-500/20 bg-blue-500/5 text-blue-500 dark:text-blue-400'
+      },
+      // Forest Green
+      {
+        bg: 'bg-emerald-500/5 dark:bg-emerald-500/10',
+        border: 'border-emerald-500/20 dark:border-emerald-500/30',
+        text: 'text-emerald-500 dark:text-emerald-400',
+        badge: 'border-emerald-500/20 bg-emerald-500/5 text-emerald-500 dark:text-emerald-400'
+      },
+      // Amber
+      {
+        bg: 'bg-amber-500/5 dark:bg-amber-500/10',
+        border: 'border-amber-500/20 dark:border-amber-500/30',
+        text: 'text-amber-500 dark:text-amber-400',
+        badge: 'border-amber-500/20 bg-amber-500/5 text-amber-500 dark:text-amber-400'
+      },
+      // Slate
+      {
+        bg: 'bg-slate-500/5 dark:bg-slate-500/10',
+        border: 'border-slate-500/20 dark:border-slate-500/30',
+        text: 'text-slate-500 dark:text-slate-400',
+        badge: 'border-slate-500/20 bg-slate-500/5 text-slate-500 dark:text-slate-400'
+      }
     ];
     let code = 0;
     for (let i = 0; i < wsId.length; i++) {
       code += wsId.charCodeAt(i);
     }
-    return regularGradients[code % regularGradients.length];
+    return colors[code % colors.length];
   }
+};
+
+const renderWorkspaceIcon = (iconName, className = '') => {
+  const IconComponent = Lucide[iconName];
+  if (IconComponent) {
+    return <IconComponent className={className} />;
+  }
+  return <Folder className={className} />;
 };
 
 const getLastActiveTime = (ws, folders, notes, canvases) => {
@@ -120,7 +155,11 @@ const WorkspaceDashboardCard = ({
   handleDelete,
   getWorkspaceDescription,
   dragOverId,
-  dragOverPosition
+  dragOverPosition,
+  editingIcon,
+  setEditingIcon,
+  editingIconSearch,
+  setEditingIconSearch
 }) => {
   const isEditing = editingId === ws.id;
   const desc = getWorkspaceDescription(ws.id);
@@ -138,7 +177,7 @@ const WorkspaceDashboardCard = ({
   // Active time calculation
   const lastActiveTime = getLastActiveTime(ws, folders, notes, canvases);
 
-  const wsGradient = getWorkspaceGradient(ws, isYoutube);
+  const wsColor = getWorkspaceColor(ws, isYoutube);
 
   return (
     <div
@@ -150,110 +189,76 @@ const WorkspaceDashboardCard = ({
     >
       {dragOverId === ws.id && dragOverPosition && (
         <div
-          className="absolute left-0 right-0 h-[2px] bg-accent-hover z-30 pointer-events-none animate-in fade-in duration-100"
+          className="absolute left-0 right-0 h-[2px] bg-accent z-30 pointer-events-none animate-in fade-in duration-100"
           style={{
-            top: dragOverPosition === 'top' ? '-10px' : 'auto',
-            bottom: dragOverPosition === 'bottom' ? '-10px' : 'auto',
+            top: dragOverPosition === 'top' ? '-8px' : 'auto',
+            bottom: dragOverPosition === 'bottom' ? '-8px' : 'auto',
           }}
         >
-          <div className="absolute -left-1.5 -top-[3px] w-2 h-2 rounded-full bg-accent-hover shadow-[0_0_8px_rgba(167,139,250,0.6)]" />
+          <div className="absolute -left-1 -top-[3px] w-2 h-2 rounded-full bg-accent" />
         </div>
       )}
       
       <div
         onClick={() => !isEditing && navigateToWorkspace(ws.id)}
-        onMouseMove={handleTiltMouseMove}
-        onMouseLeave={handleTiltMouseLeave}
         draggable={!isEditing}
         onDragStart={(e) => handleDragStart(e, ws.id)}
         onDragEnd={handleDragEnd}
-        className="relative p-7 bg-[#0f1015]/75 backdrop-blur-xl border border-white/5 flex flex-col justify-between gap-6 transition-all duration-300 group hover:scale-[1.01] hover:shadow-[0_15px_40px_rgba(0,0,0,0.25)] hover:border-white/10 cursor-pointer min-h-[290px] rounded-2xl overflow-visible select-none animate-in fade-in duration-300"
+        className="relative p-6 bg-surface/35 hover:bg-surface/55 border border-border/50 hover:border-border/80 rounded-xl transition-all duration-200 cursor-pointer flex flex-col justify-between min-h-[140px] select-none animate-in fade-in duration-300"
       >
-        <div className="card-glare-overlay" />
-        
-        {/* Left Border Neon Gradient */}
-        <div className={`absolute left-0 top-0 bottom-0 w-[5px] bg-gradient-to-b ${wsGradient} rounded-l-2xl z-20`} />
-
-        {/* Top row */}
-        <div className="flex items-center justify-between relative z-10 text-[10px] font-mono text-text-dim uppercase tracking-wider">
-          <div className="flex items-center gap-3">
-            <GripVertical 
-              className="w-4.5 h-4.5 text-text-dim/40 group-hover:text-text/60 transition-colors cursor-grab active:cursor-grabbing"
-              onClick={(e) => e.stopPropagation()} 
-            />
-            <div className="px-3 py-1 rounded-full text-[10px] font-mono font-bold bg-[#14151a] border border-white/5 text-text-dim tracking-normal">
-              {idxStr}
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setActiveMenuId(activeMenuId === ws.id ? null : ws.id);
-              }}
-              className="p-2 rounded-lg bg-surface/50 border border-border/30 hover:bg-surface text-text-dim hover:text-text cursor-pointer transition-colors relative"
-              title="Options"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        {/* Options Dropdown Menu */}
-        {activeMenuId === ws.id && (
-          <div 
-            className="absolute right-7 top-14 w-44 bg-surface/95 border border-border/85 rounded-xl shadow-2xl p-1.5 flex flex-col gap-0.5 z-40 animate-in fade-in slide-in-from-top-1 duration-100 font-sans"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={(e) => {
-                setActiveMenuId(null);
-                handleStartEditingWorkspace(e, ws.id, ws.name, desc);
-              }}
-              className="w-full text-left px-3 py-2.5 text-xs font-bold text-text hover:bg-surface-hover hover:text-accent rounded-lg transition-colors cursor-pointer border-none bg-transparent"
-            >
-              Edit Details
-            </button>
-            <button
-              onClick={(e) => {
-                setActiveMenuId(null);
-                handleDelete(e, ws.id);
-              }}
-              className="w-full text-left px-3 py-2.5 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
-            >
-              Delete
-            </button>
-          </div>
-        )}
-
-        {/* Title and Description */}
-        <div className="flex-grow flex flex-col gap-3 relative z-10">
-          <div className="flex items-start gap-4">
-            <div className={`w-15 h-15 rounded-2xl flex items-center justify-center font-sans font-extrabold text-white text-xl bg-gradient-to-br ${wsGradient} shadow-md border border-white/15 flex-shrink-0 select-none`}>
-              {ws.name ? ws.name.charAt(0).toUpperCase() : (isYoutube ? 'Y' : 'W')}
-            </div>
-            
+        {/* Top Header Row: Title & Options */}
+        <div className="flex items-start justify-between relative z-10 w-full gap-4">
+          <div className="flex flex-col gap-1 min-w-0 flex-grow">
             {isEditing ? (
               <div className="flex flex-col gap-2.5 w-full" onClick={(e) => e.stopPropagation()}>
                 <input
                   type="text"
                   value={editingName}
                   onChange={(e) => setEditingName(e.target.value)}
-                  className="text-base font-extrabold text-text bg-[#14151a] border border-border/80 rounded-xl px-3.5 py-2 focus:outline-none focus:border-accent w-full font-sans"
+                  className="text-base font-bold text-text bg-surface border border-border rounded-lg px-3 py-1.5 focus:outline-none focus:border-accent w-full font-sans"
                   autoFocus
                 />
                 <textarea
                   value={editingDesc}
                   onChange={(e) => setEditingDesc(e.target.value)}
-                  className="text-xs text-text bg-[#14151a] border border-border/80 rounded-xl p-3 focus:outline-none focus:border-accent w-full resize-none font-sans"
+                  className="text-xs text-text bg-surface border border-border rounded-lg p-2.5 focus:outline-none focus:border-accent w-full resize-none font-sans"
                   rows={2}
                   placeholder="Enter workspace description..."
                 />
-                <div className="flex items-center gap-1.5 mt-1">
+                <div className="flex flex-col gap-1.5 w-full mt-1">
+                  <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted font-mono">Select Icon</span>
+                  <input
+                    type="text"
+                    placeholder="Search icons..."
+                    value={editingIconSearch || ''}
+                    onChange={(e) => setEditingIconSearch(e.target.value)}
+                    className="text-xs text-text bg-surface border border-border rounded-lg px-2.5 py-1 focus:outline-none focus:border-accent w-full font-sans mb-1"
+                  />
+                  <div className="grid grid-cols-8 gap-1 max-h-24 overflow-y-auto p-1.5 bg-bg/40 border border-border/60 rounded-lg">
+                    {ALL_ICON_NAMES.filter(name => name.toLowerCase().includes((editingIconSearch || '').toLowerCase())).slice(0, 72).map(iconName => {
+                      const isSelected = editingIcon === iconName;
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => setEditingIcon(iconName)}
+                          className={`p-1.5 rounded flex items-center justify-center cursor-pointer transition-all hover:bg-surface ${
+                            isSelected 
+                              ? 'bg-accent/20 border border-accent text-accent scale-105' 
+                              : 'border border-transparent text-text-muted hover:text-text'
+                          }`}
+                          title={iconName}
+                        >
+                          {renderWorkspaceIcon(iconName, "w-4 h-4")}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 mt-2">
                   <button
                     onClick={(e) => handleSaveWorkspaceEditing(e, ws.id)}
-                    className="px-3.5 py-1.5 rounded-lg bg-accent text-white text-[10px] font-extrabold uppercase hover:bg-accent-hover transition-colors cursor-pointer border-none shadow-md active:scale-95"
+                    className="px-3.5 py-1.5 rounded-lg bg-accent text-white text-[10px] font-extrabold uppercase hover:bg-accent-hover transition-colors cursor-pointer border-none shadow-sm active:scale-95"
                   >
                     Save
                   </button>
@@ -266,67 +271,83 @@ const WorkspaceDashboardCard = ({
                 </div>
               </div>
             ) : (
-              <div className="flex flex-col gap-1 w-full min-w-0">
-                <h3 className="font-extrabold text-lg sm:text-xl text-text tracking-wide uppercase font-sans truncate">
-                  {ws.name}
-                </h3>
-                <div className={`h-[3px] w-12 bg-gradient-to-r ${wsGradient} rounded-full mt-1`} />
-                
-                <p className="text-xs sm:text-[13px] text-text-muted/80 leading-relaxed font-sans font-medium mt-2">
-                  {desc}
-                </p>
+              <div className="flex flex-col gap-1.5 w-full min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className={`flex-shrink-0 ${wsColor.text}`}>
+                    {ws.icon ? renderWorkspaceIcon(ws.icon, "w-4.5 h-4.5") : <Folder className="w-4.5 h-4.5" />}
+                  </span>
+                  <h3 className="font-bold text-base sm:text-lg text-text tracking-tight font-sans truncate">
+                    {ws.name}
+                  </h3>
+                </div>
+                {desc && (
+                  <p className="text-xs sm:text-[13px] text-text-muted/80 leading-relaxed font-sans font-medium mt-0.5 pr-4">
+                    {desc}
+                  </p>
+                )}
               </div>
             )}
           </div>
+
+          {!isEditing && (
+            <div className="flex items-center gap-1.5 relative z-25">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveMenuId(activeMenuId === ws.id ? null : ws.id);
+                }}
+                className="p-1.5 rounded-lg hover:bg-surface text-text-dim hover:text-text cursor-pointer transition-colors"
+                title="Options"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* Stats Container (only visible if not editing) */}
-        {!isEditing && (
-          <div className="grid grid-cols-3 gap-4.5 items-stretch relative z-10 my-1">
-            <div className="flex items-center gap-3 bg-surface/30 border border-border/20 rounded-xl p-3 select-none">
-              <div className="w-10 h-10 rounded-xl bg-[#14151a] border border-border/40 flex items-center justify-center text-text-muted flex-shrink-0">
-                <FileText className="w-5 h-5 text-text/70" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm sm:text-base font-black text-text leading-none">{wsNotes.length}</span>
-                <span className="text-[10px] font-mono text-text-dim font-bold uppercase tracking-wider mt-1">Documents</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3 bg-surface/30 border border-border/20 rounded-xl p-3 select-none">
-              <div className="w-10 h-10 rounded-xl bg-[#14151a] border border-border/40 flex items-center justify-center text-text-muted flex-shrink-0">
-                <LayoutGrid className="w-5 h-5 text-text/70" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm sm:text-base font-black text-text leading-none">{wsCanvases.length}</span>
-                <span className="text-[10px] font-mono text-text-dim font-bold uppercase tracking-wider mt-1">Boards</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-surface/30 border border-border/20 rounded-xl p-3 select-none">
-              <div className="w-10 h-10 rounded-xl bg-[#14151a] border border-border/40 flex items-center justify-center text-text-muted flex-shrink-0">
-                <Book className="w-5 h-5 text-text/70" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-sm sm:text-base font-black text-text leading-none">{wsJournalsCount}</span>
-                <span className="text-[10px] font-mono text-text-dim font-bold uppercase tracking-wider mt-1">Journal</span>
-              </div>
-            </div>
+        {/* Options Dropdown Menu */}
+        {activeMenuId === ws.id && (
+          <div 
+            className="absolute right-7 top-14 w-44 bg-surface/95 border border-border rounded-lg shadow-xl p-1.5 flex flex-col gap-0.5 z-40 animate-in fade-in slide-in-from-top-1 duration-100 font-sans"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={(e) => {
+                setActiveMenuId(null);
+                handleStartEditingWorkspace(e, ws.id, ws.name, desc);
+              }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-text hover:bg-surface/50 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+            >
+              Edit Details
+            </button>
+            <button
+              onClick={(e) => {
+                setActiveMenuId(null);
+                handleDelete(e, ws.id);
+              }}
+              className="w-full text-left px-3 py-2 text-xs font-bold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer border-none bg-transparent"
+            >
+              Delete
+            </button>
           </div>
         )}
 
-        {/* Footer row */}
-        <div className="flex items-center justify-between border-t border-border/20 pt-4.5 relative z-10 text-[10.5px] font-mono font-bold text-text-dim uppercase tracking-wider font-sans">
-          <div className="flex items-center gap-2">
-            <Clock className="w-4.5 h-4.5 text-text-dim/60" />
-            <span>{formatRelativeTime(lastActiveTime)}</span>
+        {/* Metadata Row (only visible if not editing) */}
+        {!isEditing && (
+          <div className="flex items-center flex-wrap gap-x-2.5 gap-y-1 text-[10.5px] text-text-dim font-mono font-bold uppercase tracking-wider mt-4 relative z-10 border-t border-border/20 pt-3 w-full">
+            <span>{wsNotes.length} Notes</span>
+            <span className="text-text-dim/40 select-none">·</span>
+            <span>{wsCanvases.length} Boards</span>
+            <span className="text-text-dim/40 select-none">·</span>
+            <span className="text-text-muted/80">{formatRelativeTime(lastActiveTime)}</span>
+            {numCollaborators > 1 && (
+              <>
+                <span className="text-text-dim/40 select-none">·</span>
+                <span className="text-text-muted/80">{numCollaborators} users</span>
+              </>
+            )}
           </div>
-
-          <div className="flex items-center gap-2">
-            <Users className="w-4.5 h-4.5 text-text-dim/60" />
-            <span>{numCollaborators} collaborator{numCollaborators > 1 ? 's' : ''}</span>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -340,6 +361,7 @@ export default function WorkspaceScreen() {
     canvases,
     createWorkspace,
     renameWorkspace,
+    updateWorkspace,
     deleteWorkspace,
     navigateToWorkspace,
     updateItemPosition,
@@ -481,6 +503,10 @@ export default function WorkspaceScreen() {
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [editingDesc, setEditingDesc] = useState('');
+  const [selectedIcon, setSelectedIcon] = useState('Briefcase');
+  const [iconSearch, setIconSearch] = useState('');
+  const [editingIcon, setEditingIcon] = useState('Briefcase');
+  const [editingIconSearch, setEditingIconSearch] = useState('');
 
   const [time, setTime] = useState('00:00:00');
 
@@ -990,6 +1016,8 @@ export default function WorkspaceScreen() {
     setNewName('');
     setWorkspaceType('regular');
     setGroupColor('default');
+    setSelectedIcon('Briefcase');
+    setIconSearch('');
   };
 
   const handleCreateSubmit = async (e) => {
@@ -1000,7 +1028,7 @@ export default function WorkspaceScreen() {
     }
 
     if (creationType === 'workspace') {
-      const newWs = await createWorkspace(newName.trim(), workspaceType);
+      const newWs = await createWorkspace(newName.trim(), workspaceType, selectedIcon);
       positionsRef.current = {
         ...positionsRef.current,
         [newWs.id]: { x: creationPos.x, y: creationPos.y }
@@ -1025,6 +1053,8 @@ export default function WorkspaceScreen() {
     setNewName('');
     setWorkspaceType('regular');
     setGroupColor('default');
+    setSelectedIcon('Briefcase');
+    setIconSearch('');
   };
 
   const handleStartRename = (e, id, name) => {
@@ -1045,17 +1075,19 @@ export default function WorkspaceScreen() {
     setEditingId(null);
   };
 
-  const handleStartEditingWorkspace = (e, id, name, currentDesc) => {
+  const handleStartEditingWorkspace = (e, id, name, currentDesc, currentIcon) => {
     e.stopPropagation();
     setEditingId(id);
     setEditingName(name);
-    setEditingDesc(currentDesc);
+    setEditingDesc(currentDesc || '');
+    setEditingIcon(currentIcon || 'Briefcase');
+    setEditingIconSearch('');
   };
 
   const handleSaveWorkspaceEditing = async (e, id) => {
     e.stopPropagation();
     if (!editingName.trim()) return;
-    await renameWorkspace(id, editingName.trim());
+    await updateWorkspace(id, { name: editingName.trim(), icon: editingIcon });
     await saveWorkspaceDescription(id, editingDesc.trim());
     setEditingId(null);
   };
@@ -1080,6 +1112,8 @@ export default function WorkspaceScreen() {
     setIsCreating(true);
     setNewName('');
     setWorkspaceType('regular');
+    setSelectedIcon('Briefcase');
+    setIconSearch('');
   };
 
   const matchingWorkspaces = searchQuery
@@ -1114,7 +1148,7 @@ export default function WorkspaceScreen() {
       {viewMode === 'dashboard' && (
         <div className={`${hasBothTypes ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-6 pt-24 pb-16 flex flex-col gap-9 font-sans select-none relative z-10 animate-in fade-in duration-300`}>
           <header className="flex items-center gap-6 border-b border-border/60 pb-7">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-950/20 flex-shrink-0">
+            <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center text-text flex-shrink-0">
               <Folder className="w-7 h-7" />
             </div>
             <div className="flex flex-col">
@@ -1172,6 +1206,10 @@ export default function WorkspaceScreen() {
                           getWorkspaceDescription={getWorkspaceDescription}
                           dragOverId={dragOverId}
                           dragOverPosition={dragOverPosition}
+                          editingIcon={editingIcon}
+                          setEditingIcon={setEditingIcon}
+                          editingIconSearch={editingIconSearch}
+                          setEditingIconSearch={setEditingIconSearch}
                         />
                       ))}
                     </div>
@@ -1215,6 +1253,10 @@ export default function WorkspaceScreen() {
                           getWorkspaceDescription={getWorkspaceDescription}
                           dragOverId={dragOverId}
                           dragOverPosition={dragOverPosition}
+                          editingIcon={editingIcon}
+                          setEditingIcon={setEditingIcon}
+                          editingIconSearch={editingIconSearch}
+                          setEditingIconSearch={setEditingIconSearch}
                         />
                       ))}
                     </div>
@@ -1707,29 +1749,61 @@ export default function WorkspaceScreen() {
             />
 
             {creationType === 'workspace' ? (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted font-mono">Type</span>
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setWorkspaceType('regular')}
-                    className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'regular'
-                        ? 'border-accent bg-accent/10 text-accent font-extrabold'
-                        : 'border-border hover:border-accent text-text-muted hover:text-text'
-                      }`}
-                  >
-                    Regular
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setWorkspaceType('youtube')}
-                    className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'youtube'
-                        ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold'
-                        : 'border-border hover:border-red-500 text-text-muted hover:text-text'
-                      }`}
-                  >
-                    YouTube
-                  </button>
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted font-mono">Type</span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setWorkspaceType('regular')}
+                      className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'regular'
+                          ? 'border-accent bg-accent/10 text-accent font-extrabold'
+                          : 'border-border hover:border-accent text-text-muted hover:text-text'
+                        }`}
+                    >
+                      Regular
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setWorkspaceType('youtube')}
+                      className={`flex-1 py-1.5 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'youtube'
+                          ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold'
+                          : 'border-border hover:border-red-500 text-text-muted hover:text-text'
+                        }`}
+                    >
+                      YouTube
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[9px] uppercase tracking-wider font-bold text-text-muted font-mono">Select Icon</span>
+                  <input
+                    type="text"
+                    placeholder="Search icons..."
+                    value={iconSearch || ''}
+                    onChange={(e) => setIconSearch(e.target.value)}
+                    className="bg-bg/40 border border-border text-text text-xs rounded-lg p-2 outline-none focus:border-accent/60 w-full font-sans transition-all mb-1"
+                  />
+                  <div className="grid grid-cols-6 gap-1 max-h-24 overflow-y-auto p-1.5 bg-bg/40 border border-border/60 rounded-lg">
+                    {ALL_ICON_NAMES.filter(name => name.toLowerCase().includes((iconSearch || '').toLowerCase())).slice(0, 72).map(iconName => {
+                      const isSelected = selectedIcon === iconName;
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => setSelectedIcon(iconName)}
+                          className={`p-1.5 rounded flex items-center justify-center cursor-pointer transition-all hover:bg-surface ${
+                            isSelected 
+                              ? 'bg-accent/20 border border-accent text-accent scale-105' 
+                              : 'border border-transparent text-text-muted hover:text-text'
+                          }`}
+                          title={iconName}
+                        >
+                          {renderWorkspaceIcon(iconName, "w-4 h-4")}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1812,29 +1886,61 @@ export default function WorkspaceScreen() {
               />
 
               {creationType === 'workspace' ? (
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted font-mono">Type</span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setWorkspaceType('regular')}
-                      className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'regular'
-                          ? 'border-accent bg-accent/10 text-accent font-extrabold'
-                          : 'border-border hover:border-accent text-text-muted hover:text-text'
-                        }`}
-                    >
-                      Regular
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWorkspaceType('youtube')}
-                      className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'youtube'
-                          ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold'
-                          : 'border-border hover:border-red-500 text-text-muted hover:text-text'
-                        }`}
-                    >
-                      YouTube
-                    </button>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted font-mono">Type</span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceType('regular')}
+                        className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'regular'
+                            ? 'border-accent bg-accent/10 text-accent font-extrabold'
+                            : 'border-border hover:border-accent text-text-muted hover:text-text'
+                          }`}
+                      >
+                        Regular
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setWorkspaceType('youtube')}
+                        className={`flex-1 py-2 border text-[10px] font-extrabold uppercase tracking-wider rounded-lg cursor-pointer transition-all ${workspaceType === 'youtube'
+                            ? 'border-red-500 bg-red-500/10 text-red-500 font-extrabold'
+                            : 'border-border hover:border-red-500 text-text-muted hover:text-text'
+                          }`}
+                      >
+                        YouTube
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-bold text-text-muted font-mono">Select Icon</span>
+                    <input
+                      type="text"
+                      placeholder="Search icons..."
+                      value={iconSearch || ''}
+                      onChange={(e) => setIconSearch(e.target.value)}
+                      className="bg-bg/40 border border-border text-text text-xs rounded-lg p-2.5 outline-none focus:border-accent/60 w-full font-sans transition-all mb-1"
+                    />
+                    <div className="grid grid-cols-6 gap-1 max-h-24 overflow-y-auto p-1.5 bg-bg/40 border border-border/60 rounded-lg">
+                      {ALL_ICON_NAMES.filter(name => name.toLowerCase().includes((iconSearch || '').toLowerCase())).slice(0, 72).map(iconName => {
+                        const isSelected = selectedIcon === iconName;
+                        return (
+                          <button
+                            key={iconName}
+                            type="button"
+                            onClick={() => setSelectedIcon(iconName)}
+                            className={`p-1.5 rounded flex items-center justify-center cursor-pointer transition-all hover:bg-surface ${
+                              isSelected 
+                                ? 'bg-accent/20 border border-accent text-accent scale-105' 
+                                : 'border border-transparent text-text-muted hover:text-text'
+                            }`}
+                            title={iconName}
+                          >
+                            {renderWorkspaceIcon(iconName, "w-4 h-4")}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -2064,9 +2170,14 @@ function WorkspaceCard({
             </div>
           ) : (
             <>
-              <h3 className="font-outfit-tight font-extrabold text-text text-base leading-snug truncate group-hover:text-white transition-colors duration-150 tracking-[-0.01em]">
-                {ws.name}
-              </h3>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className={`flex-shrink-0 ${getWorkspaceColor(ws, wsType === 'youtube').text}`}>
+                  {ws.icon ? renderWorkspaceIcon(ws.icon, "w-4 h-4") : <Folder className="w-4 h-4" />}
+                </span>
+                <h3 className="font-outfit-tight font-extrabold text-text text-base leading-snug truncate group-hover:text-white transition-colors duration-150 tracking-[-0.01em]">
+                  {ws.name}
+                </h3>
+              </div>
               <div className="mt-1.5">
                 <span className={`px-2 py-0.5 rounded border font-mono font-bold uppercase tracking-wider text-[8px] ${wsType === 'youtube'
                     ? 'border-red-500/10 bg-red-500/5 text-red-400'
