@@ -13,10 +13,10 @@
 
 ## Hosting
 - **Platform:** Cloudflare Pages
-- **Domain:** inferalis.space (already on Cloudflare)
+- **Domain:** galax.superwave.space
 
 ## Auth
-- Single password gate
+- Single password gate 
 - Password stored as environment variable
 - Session persists via localStorage
 - No user accounts, no OAuth, no Supabase auth

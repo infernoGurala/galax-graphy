@@ -18,3 +18,7 @@ APPEAREANCE
 - Uses Super clean Minimal fonts and clear contrast colors.
 - Simplicity first.
 
+USAGE
+-----
+- Cloudflare worker with supabase.
+Envs:
