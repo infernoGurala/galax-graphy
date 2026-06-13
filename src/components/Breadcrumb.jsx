@@ -61,23 +61,58 @@ export default function Breadcrumb() {
     });
   }
 
+  const containerRef = React.useRef(null);
+
+  const handleMouseMove = (e) => {
+    const container = containerRef.current;
+    if (!container) return;
+    const { width, left } = container.getBoundingClientRect();
+    const scrollWidth = container.scrollWidth;
+    if (scrollWidth > width) {
+      const relativeX = (e.clientX - left) / width;
+      container.scrollLeft = (scrollWidth - width) * relativeX;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    const container = containerRef.current;
+    if (!container) return;
+    container.scrollTo({ left: 0, behavior: 'smooth' });
+  };
+
   return (
-    <nav className="flex items-center space-x-2.5 text-xs text-text-muted select-none font-sans font-normal py-1">
-      {crumbs.map((crumb, idx) => (
-        <React.Fragment key={idx}>
-          {idx > 0 && <span className="text-border">/</span>}
-          {crumb.onClick ? (
-            <button
-              onClick={crumb.onClick}
-              className="cursor-pointer outline-none focus:text-text"
-            >
-              {crumb.label}
-            </button>
-          ) : (
-            <span>{crumb.label}</span>
-          )}
-        </React.Fragment>
-      ))}
-    </nav>
+    <div
+      ref={containerRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      className="overflow-x-auto flex items-center py-1 max-w-full select-none"
+      style={{
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none',
+      }}
+    >
+      <style dangerouslySetInnerHTML={{__html: `
+        div::-webkit-scrollbar {
+          display: none;
+        }
+      `}} />
+      <nav className="flex items-center space-x-2.5 text-xs text-text-muted select-none font-sans font-normal whitespace-nowrap shrink-0">
+        {crumbs.map((crumb, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <span className="text-border">/</span>}
+            {crumb.onClick ? (
+              <button
+                onClick={crumb.onClick}
+                className="cursor-pointer outline-none focus:text-text"
+              >
+                {crumb.label}
+              </button>
+            ) : (
+              <span>{crumb.label}</span>
+            )}
+          </React.Fragment>
+        ))}
+      </nav>
+    </div>
   );
 }

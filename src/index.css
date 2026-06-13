@@ -402,13 +402,13 @@ body {
 #quill-toolbar {
   background: transparent !important;
   border: none !important;
-  padding: 12px 0 !important;
-  margin-bottom: 32px;
+  padding: 0 !important;
+  margin: 0 !important;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 14px;
-  justify-content: flex-start;
+  flex-wrap: nowrap !important;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 /* Override default snow borders */

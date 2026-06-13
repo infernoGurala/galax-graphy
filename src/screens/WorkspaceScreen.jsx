@@ -395,6 +395,26 @@ export default function WorkspaceScreen() {
     return () => window.removeEventListener('click', handleCloseMenus);
   }, []);
 
+  useEffect(() => {
+    const handleTriggerCreate = (e) => {
+      const { type } = e.detail;
+      setCreationType(type);
+      
+      const boardEl = boardRef.current;
+      const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
+      const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
+      setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
+      
+      setIsCreating(true);
+      setNewName('');
+      setWorkspaceType('regular');
+      setSelectedIcon('Briefcase');
+      setIconSearch('');
+    };
+    window.addEventListener('trigger-create-workspace', handleTriggerCreate);
+    return () => window.removeEventListener('trigger-create-workspace', handleTriggerCreate);
+  }, [panOffset, zoom]);
+
   // Get custom order of workspaces from pluginData
   const orderedWorkspaces = React.useMemo(() => {
     const orderRecord = pluginData.find(
@@ -2021,70 +2041,72 @@ export default function WorkspaceScreen() {
         </div>
       )}
 
-      {/* Floating HUD controls */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 bg-card/85 backdrop-blur-md border border-border/80 p-2 rounded-2xl shadow-2xl pointer-events-auto">
-        {/* View mode switcher */}
-        <div className="flex bg-surface border border-border/60 p-1 rounded-xl gap-1">
+      {/* Floating HUD controls (Hidden and moved to right-click menu) */}
+      {false && (
+        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 bg-card/85 backdrop-blur-md border border-border/80 p-2 rounded-2xl shadow-2xl pointer-events-auto">
+          {/* View mode switcher */}
+          <div className="flex bg-surface border border-border/60 p-1 rounded-xl gap-1">
+            <button
+              onClick={() => {
+                setViewMode('dashboard');
+                localStorage.setItem('galax_workspace_view_mode', 'dashboard');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+                }`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('board');
+                localStorage.setItem('galax_workspace_view_mode', 'board');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+                }`}
+            >
+              Board
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('grid');
+                localStorage.setItem('galax_workspace_view_mode', 'grid');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+                }`}
+            >
+              Grid
+            </button>
+            <button
+              onClick={() => {
+                setViewMode('list');
+                localStorage.setItem('galax_workspace_view_mode', 'list');
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+                }`}
+            >
+              List
+            </button>
+          </div>
+
+          {/* HUD Create Button */}
           <button
-            onClick={() => {
-              setViewMode('dashboard');
-              localStorage.setItem('galax_workspace_view_mode', 'dashboard');
-            }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-              }`}
+            onClick={handleCreateButtonHUD}
+            className="bg-text hover:opacity-90 text-bg px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-1 font-sans border-none"
           >
-            Dashboard
+            <Plus className="w-3.5 h-3.5" />
+            <span>New</span>
           </button>
+
+          {/* Settings Button */}
           <button
-            onClick={() => {
-              setViewMode('board');
-              localStorage.setItem('galax_workspace_view_mode', 'board');
-            }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-              }`}
+            onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+            className="bg-surface border border-border/60 hover:bg-surface/50 text-text-muted hover:text-text p-2 rounded-xl transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
+            title="Settings"
           >
-            Board
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('grid');
-              localStorage.setItem('galax_workspace_view_mode', 'grid');
-            }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-              }`}
-          >
-            Grid
-          </button>
-          <button
-            onClick={() => {
-              setViewMode('list');
-              localStorage.setItem('galax_workspace_view_mode', 'list');
-            }}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-              }`}
-          >
-            List
+            <Settings className="w-3.5 h-3.5" />
           </button>
         </div>
-
-        {/* HUD Create Button */}
-        <button
-          onClick={handleCreateButtonHUD}
-          className="bg-text hover:opacity-90 text-bg px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-1 font-sans border-none"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New</span>
-        </button>
-
-        {/* Settings Button */}
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
-          className="bg-surface border border-border/60 hover:bg-surface/50 text-text-muted hover:text-text p-2 rounded-xl transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
-          title="Settings"
-        >
-          <Settings className="w-3.5 h-3.5" />
-        </button>
-      </div>
+      )}
 
     </div>
   );

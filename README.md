@@ -22,3 +22,6 @@ USAGE
 -----
 - Cloudflare worker with supabase.
 Envs:
+VITE_APP_PASSWORD
+VITE_SUPABASE_ANON_KEY
+VITE_SUPABASE_URL

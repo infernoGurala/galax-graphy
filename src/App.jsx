@@ -30,6 +30,7 @@ export default function App() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextMenuPos, setContextMenuPos] = useState({ x: 0, y: 0 });
   const [isContextMenuOpen, setIsContextMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   // Custom event listener for settings panel
   useEffect(() => {
@@ -38,10 +39,16 @@ export default function App() {
     return () => window.removeEventListener('open-settings', handleOpenSettings);
   }, []);
 
-  // Global right-click text styling menu listener
+  // Global right-click context menu listener
   useEffect(() => {
     const handleContextMenu = (e) => {
-      if (!isAuthenticated || currentScreen !== 'note') return;
+      const activeEl = e.target;
+      const isFormInput = activeEl && (
+        (activeEl.tagName === 'INPUT' && activeEl.type !== 'submit') ||
+        activeEl.tagName === 'TEXTAREA'
+      );
+      if (isFormInput) return; // Allow browser context menu for input fields
+
       e.preventDefault();
       setContextMenuPos({ x: e.clientX, y: e.clientY });
       setIsContextMenuOpen(true);
@@ -49,7 +56,7 @@ export default function App() {
 
     window.addEventListener('contextmenu', handleContextMenu);
     return () => window.removeEventListener('contextmenu', handleContextMenu);
-  }, [isAuthenticated, currentScreen]);
+  }, []);
 
   // Apply saved theme immediately on mount (before first paint)
   useEffect(() => {
@@ -128,7 +135,24 @@ export default function App() {
     <div className="h-screen w-screen bg-bg text-text selection:bg-accent/30 selection:text-text flex flex-col font-sans relative overflow-hidden select-none">
 
       {!isAuthenticated ? (
-        <PasswordGate />
+        <>
+          {/* Ambient locked screen (no active visible UI) */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-bg z-0 select-none">
+            {/* Custom premium design - subtle grid pattern in background */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-accent/5 blur-[120px] rounded-full pointer-events-none" />
+            
+            {/* Subtle premium hint */}
+            <div className="text-[10px] font-mono text-text-dim/60 uppercase tracking-[0.2em] pointer-events-none animate-pulse">
+              Right-click to unlock
+            </div>
+          </div>
+
+          {/* Authentication Modal */}
+          {isAuthModalOpen && (
+            <PasswordGate onClose={() => setIsAuthModalOpen(false)} />
+          )}
+        </>
       ) : (
         <>
           {/* Sleek top navigation styled like macOS Notes toolbar */}
@@ -163,26 +187,21 @@ export default function App() {
           {/* Global right-click settings panel */}
           <SettingsPanel isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
 
-          {/* Floating settings trigger button at bottom right (rendered globally once authenticated) */}
-          {isAuthenticated && (
-            <button 
-              onClick={() => setSettingsOpen(true)}
-              className="fixed bottom-6 right-6 z-50 p-2.5 rounded-xl bg-surface/85 backdrop-blur-md border border-border/80 text-text-muted hover:text-text hover:bg-surface hover:scale-105 active:scale-95 shadow-2xl transition-all duration-200 cursor-pointer flex items-center justify-center"
-              title="Settings"
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
-          )}
-
-          {/* Custom Right-Click Context Menu for Text Styling */}
-          {isContextMenuOpen && (
-            <ContextMenu 
-              x={contextMenuPos.x} 
-              y={contextMenuPos.y} 
-              onClose={() => setIsContextMenuOpen(false)} 
-            />
-          )}
+          {/* Floating settings trigger button hidden as it is moved to context menu */}
         </>
+      )}
+
+      {/* Custom Right-Click Context Menu (Unified globally) */}
+      {isContextMenuOpen && (
+        <ContextMenu 
+          x={contextMenuPos.x} 
+          y={contextMenuPos.y} 
+          onClose={() => setIsContextMenuOpen(false)} 
+          onOpenAuth={() => {
+            setIsContextMenuOpen(false);
+            setIsAuthModalOpen(true);
+          }}
+        />
       )}
     </div>
   );

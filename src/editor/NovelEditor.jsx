@@ -162,16 +162,37 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
   useEffect(() => {
     if (!quillElementRef.current || quillRef.current) return;
 
-    const q = new Quill(quillElementRef.current, {
-      theme: 'snow',
-      modules: {
-        toolbar: '#quill-toolbar'
-      },
-      placeholder: 'Type your notes here...'
-    });
+    let active = true;
+    let rAFId = null;
 
-    setQuill(q);
-    quillRef.current = q;
+    const initQuill = () => {
+      if (!active || quillRef.current) return;
+      
+      const toolbarEl = document.getElementById('quill-toolbar');
+      if (!toolbarEl) {
+        // Wait a frame if TopBar hasn't fully rendered the toolbar in DOM yet
+        rAFId = requestAnimationFrame(initQuill);
+        return;
+      }
+
+      const q = new Quill(quillElementRef.current, {
+        theme: 'snow',
+        modules: {
+          toolbar: '#quill-toolbar'
+        },
+        placeholder: 'Type your notes here...'
+      });
+
+      setQuill(q);
+      quillRef.current = q;
+    };
+
+    initQuill();
+
+    return () => {
+      active = false;
+      if (rAFId) cancelAnimationFrame(rAFId);
+    };
   }, []);
 
   // Sync note loading when active noteId changes
@@ -269,62 +290,6 @@ export default function NovelEditor({ noteId, setSaveStatus }) {
 
   return (
     <div className="w-full relative py-2">
-      {/* Custom Showcase-styled Toolbar */}
-      <div id="quill-toolbar">
-        <span className="ql-formats">
-          <select className="ql-header">
-            <option selected></option> {/* Normal */}
-            <option value="1"></option>
-            <option value="2"></option>
-            <option value="3"></option>
-          </select>
-        </span>
-        
-        <span className="ql-formats">
-          <select className="ql-font">
-            <option selected></option> {/* Sailec Light (Default) */}
-            <option value="georgia"></option> {/* Georgia */}
-            <option value="sofia"></option> {/* Sofia Pro */}
-            <option value="slabo"></option> {/* Slabo 13px */}
-            <option value="roboto-slab"></option> {/* Roboto Slab */}
-            <option value="inconsolata"></option> {/* Inconsolata */}
-            <option value="ubuntu-mono"></option> {/* Ubuntu Mono */}
-          </select>
-        </span>
-
-        <span className="ql-formats">
-          <button className="ql-bold"></button>
-          <button className="ql-italic"></button>
-          <button className="ql-underline"></button>
-        </span>
-
-        <span className="ql-formats">
-          <button className="ql-list" value="ordered"></button>
-          <button className="ql-list" value="bullet"></button>
-        </span>
-
-        <span className="ql-formats">
-          <select className="ql-align">
-            <option selected></option> {/* Left Align */}
-            <option value="center"></option>
-            <option value="right"></option>
-            <option value="justify"></option>
-          </select>
-        </span>
-
-        <span className="ql-formats">
-          <button className="ql-link"></button>
-          <button className="ql-image"></button>
-          <button className="ql-video"></button>
-        </span>
-
-        <span className="ql-formats">
-          <button className="ql-formula"></button>
-          <button className="ql-code-block"></button>
-          <button className="ql-clean" title="Clear formatting"></button>
-        </span>
-      </div>
-
       {/* Title Input Field */}
       <div className="mb-8 mt-2">
         <input

@@ -9,6 +9,21 @@ const generateUUID = () => {
   return 'local-' + Math.random().toString(36).substring(2, 15) + '-' + Math.random().toString(36).substring(2, 15);
 };
 
+const getEnv = (key) => {
+  if (typeof window !== 'undefined' && window.__ENV__ && window.__ENV__[key]) {
+    return window.__ENV__[key];
+  }
+  return import.meta.env[key] || '';
+};
+
+const isSyncActive = () => {
+  try {
+    return useStore.getState().isSupabaseConnected;
+  } catch (e) {
+    return isSupabaseConfigured;
+  }
+};
+
 // Local storage keys
 const LS_PREFIX = 'galax_';
 const LS_KEYS = {
@@ -22,8 +37,8 @@ const LS_KEYS = {
 
 export const useStore = create((set, get) => ({
   // Auth State
-  isAuthenticated: localStorage.getItem(LS_KEYS.AUTH) === 'true' || !(import.meta.env.VITE_APP_PASSWORD),
-  isSupabaseConnected: isSupabaseConfigured,
+  isAuthenticated: localStorage.getItem(LS_KEYS.AUTH) === 'true' || !getEnv('VITE_APP_PASSWORD'),
+  isSupabaseConnected: localStorage.getItem("galax_supabase_sync_enabled") !== "false" && isSupabaseConfigured,
   isLoading: false,
   error: null,
 
@@ -48,13 +63,25 @@ export const useStore = create((set, get) => ({
 
   // --- Auth Actions ---
   login: (password) => {
-    const correctPassword = import.meta.env.VITE_APP_PASSWORD || 'admin';
+    const correctPassword = getEnv('VITE_APP_PASSWORD') || 'admin';
     if (password === correctPassword) {
       localStorage.setItem(LS_KEYS.AUTH, 'true');
       set({ isAuthenticated: true });
       return true;
     }
     return false;
+  },
+
+  toggleSupabaseSync: () => {
+    if (!isSupabaseConfigured) return;
+    const nextVal = !get().isSupabaseConnected;
+    localStorage.setItem('galax_supabase_sync_enabled', String(nextVal));
+    set({ isSupabaseConnected: nextVal });
+    if (nextVal) {
+      get().loadData();
+    } else {
+      get().loadDataFromLocalStorage();
+    }
   },
 
   logout: () => {
@@ -132,7 +159,7 @@ export const useStore = create((set, get) => ({
   loadData: async () => {
     set({ isLoading: true, error: null });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const [wRes, fRes, nRes, cRes, pRes] = await Promise.all([
           supabase.from('workspaces').select('*').order('created_at'),
@@ -233,13 +260,13 @@ export const useStore = create((set, get) => ({
 
     set(state => {
       const workspaces = [...state.workspaces, newWorkspace];
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.WORKSPACES, JSON.stringify(workspaces));
       }
       return { workspaces };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('workspaces').insert([newWorkspace]);
         if (error) throw error;
@@ -259,13 +286,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const workspaces = state.workspaces.map(w => w.id === id ? { ...w, name, updated_at } : w);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.WORKSPACES, JSON.stringify(workspaces));
       }
       return { workspaces };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('workspaces').update({ name, updated_at }).eq('id', id);
         if (error) throw error;
@@ -279,13 +306,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const workspaces = state.workspaces.map(w => w.id === id ? { ...w, ...fields, updated_at } : w);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.WORKSPACES, JSON.stringify(workspaces));
       }
       return { workspaces };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('workspaces').update({ ...fields, updated_at }).eq('id', id);
         if (error) throw error;
@@ -304,7 +331,7 @@ export const useStore = create((set, get) => ({
       const canvases = state.canvases.filter(c => c.workspace_id !== id);
       const pluginData = state.pluginData.filter(p => p.ref_id !== id);
 
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.WORKSPACES, JSON.stringify(workspaces));
         localStorage.setItem(LS_KEYS.FOLDERS, JSON.stringify(folders));
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
@@ -323,7 +350,7 @@ export const useStore = create((set, get) => ({
       };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         await supabase.from('plugin_data').delete().eq('ref_id', id);
         const { error } = await supabase.from('workspaces').delete().eq('id', id);
@@ -347,13 +374,13 @@ export const useStore = create((set, get) => ({
 
     set(state => {
       const folders = [...state.folders, newFolder];
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.FOLDERS, JSON.stringify(folders));
       }
       return { folders };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('folders').insert([newFolder]);
         if (error) throw error;
@@ -368,13 +395,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const folders = state.folders.map(f => f.id === id ? { ...f, name, updated_at } : f);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.FOLDERS, JSON.stringify(folders));
       }
       return { folders };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('folders').update({ name, updated_at }).eq('id', id);
         if (error) throw error;
@@ -389,7 +416,7 @@ export const useStore = create((set, get) => ({
       const folders = state.folders.filter(f => f.id !== id);
       const notes = state.notes.filter(n => n.folder_id !== id);
 
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.FOLDERS, JSON.stringify(folders));
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
       }
@@ -401,7 +428,7 @@ export const useStore = create((set, get) => ({
       };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('folders').delete().eq('id', id);
         if (error) throw error;
@@ -425,13 +452,13 @@ export const useStore = create((set, get) => ({
 
     set(state => {
       const notes = [...state.notes, newNote];
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
       }
       return { notes };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('notes').insert([newNote]);
         if (error) throw error;
@@ -446,13 +473,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const notes = state.notes.map(n => n.id === id ? { ...n, content, updated_at } : n);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
       }
       return { notes };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('notes').update({ content, updated_at }).eq('id', id);
         if (error) throw error;
@@ -466,13 +493,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const notes = state.notes.map(n => n.id === id ? { ...n, title, updated_at } : n);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
       }
       return { notes };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('notes').update({ title, updated_at }).eq('id', id);
         if (error) throw error;
@@ -485,7 +512,7 @@ export const useStore = create((set, get) => ({
   deleteNote: async (id) => {
     set(state => {
       const notes = state.notes.filter(n => n.id !== id);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.NOTES, JSON.stringify(notes));
       }
       return {
@@ -495,7 +522,7 @@ export const useStore = create((set, get) => ({
       };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('notes').delete().eq('id', id);
         if (error) throw error;
@@ -520,13 +547,13 @@ export const useStore = create((set, get) => ({
 
     set(state => {
       const canvases = [...state.canvases, newCanvas];
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.CANVASES, JSON.stringify(canvases));
       }
       return { canvases };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('canvases').insert([newCanvas]);
         if (error) throw error;
@@ -541,13 +568,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const canvases = state.canvases.map(c => c.id === id ? { ...c, data, updated_at } : c);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.CANVASES, JSON.stringify(canvases));
       }
       return { canvases };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('canvases').update({ data, updated_at }).eq('id', id);
         if (error) throw error;
@@ -561,13 +588,13 @@ export const useStore = create((set, get) => ({
     const updated_at = new Date().toISOString();
     set(state => {
       const canvases = state.canvases.map(c => c.id === id ? { ...c, title, updated_at } : c);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.CANVASES, JSON.stringify(canvases));
       }
       return { canvases };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('canvases').update({ title, updated_at }).eq('id', id);
         if (error) throw error;
@@ -580,7 +607,7 @@ export const useStore = create((set, get) => ({
   deleteCanvas: async (id) => {
     set(state => {
       const canvases = state.canvases.filter(c => c.id !== id);
-      if (!isSupabaseConfigured) {
+      if (!isSyncActive()) {
         localStorage.setItem(LS_KEYS.CANVASES, JSON.stringify(canvases));
       }
       return {
@@ -590,7 +617,7 @@ export const useStore = create((set, get) => ({
       };
     });
 
-    if (isSupabaseConfigured) {
+    if (isSyncActive()) {
       try {
         const { error } = await supabase.from('canvases').delete().eq('id', id);
         if (error) throw error;
@@ -609,13 +636,13 @@ export const useStore = create((set, get) => ({
       // Update
       set(state => {
         const pluginData = state.pluginData.map(p => p.id === existing.id ? { ...p, data, updated_at } : p);
-        if (!isSupabaseConfigured) {
+        if (!isSyncActive()) {
           localStorage.setItem(LS_KEYS.PLUGIN_DATA, JSON.stringify(pluginData));
         }
         return { pluginData };
       });
 
-      if (isSupabaseConfigured) {
+      if (isSyncActive()) {
         try {
           const { error } = await supabase.from('plugin_data').update({ data, updated_at }).eq('id', existing.id);
           if (error) throw error;
@@ -637,13 +664,13 @@ export const useStore = create((set, get) => ({
 
       set(state => {
         const pluginData = [...state.pluginData, newPluginData];
-        if (!isSupabaseConfigured) {
+        if (!isSyncActive()) {
           localStorage.setItem(LS_KEYS.PLUGIN_DATA, JSON.stringify(pluginData));
         }
         return { pluginData };
       });
 
-      if (isSupabaseConfigured) {
+      if (isSyncActive()) {
         try {
           const { error } = await supabase.from('plugin_data').insert([newPluginData]);
           if (error) throw error;

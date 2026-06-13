@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useStore } from '../store/useStore';
+import { X } from 'lucide-react';
 
-export default function PasswordGate() {
+export default function PasswordGate({ onClose }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const login = useStore(state => state.login);
@@ -12,6 +13,7 @@ export default function PasswordGate() {
     const success = login(password);
     if (success) {
       setError(false);
+      if (onClose) onClose();
     } else {
       setError(true);
       setPassword('');
@@ -36,13 +38,30 @@ export default function PasswordGate() {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[90vh] relative z-10 px-4 select-none">
+    <div className="fixed inset-0 flex items-center justify-center z-50 px-4 select-none animate-in fade-in duration-200">
+      {/* Backdrop */}
+      <div 
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-md"
+      />
+
+      {/* Modal Card */}
       <div 
         ref={cardRef}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
-        className="w-full max-w-[380px] p-8 bg-card border border-border/80 rounded-2xl shadow-2xl flex flex-col items-center premium-card backdrop-blur-xl transition-[border-color,background-color,transform] duration-200"
+        className="w-full max-w-[380px] p-8 bg-card border border-border/80 rounded-2xl shadow-2xl flex flex-col items-center premium-card backdrop-blur-xl transition-[border-color,background-color,transform] duration-200 relative z-10"
       >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          type="button"
+          className="absolute top-4 right-4 p-1.5 rounded-lg border border-border/40 bg-surface/50 text-text-muted hover:text-text cursor-pointer hover:bg-surface transition-all"
+          title="Close"
+        >
+          <X className="w-3 h-3" />
+        </button>
+
         {/* Card spotlight reflection shine */}
         <div className="card-glare-overlay" />
 

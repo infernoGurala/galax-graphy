@@ -98,6 +98,23 @@ export default function FolderScreen() {
 
   // Filter items
   const workspaceFolders = folders.filter(f => f.workspace_id === currentWorkspaceId);
+
+  useEffect(() => {
+    const handleTriggerCreate = (e) => {
+      const { type } = e.detail;
+      setCreationType(type);
+      setIsCreatingMenu(false);
+      setCreationName('');
+      setGroupColor('default');
+      
+      const boardEl = boardRef.current;
+      const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
+      const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
+      setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
+    };
+    window.addEventListener('trigger-create-folder-item', handleTriggerCreate);
+    return () => window.removeEventListener('trigger-create-folder-item', handleTriggerCreate);
+  }, [panOffset, zoom]);
   const workspaceCanvases = canvases.filter(c => c.workspace_id === currentWorkspaceId && c.is_standalone);
   const workspaceNotes = notes.filter(n => n.workspace_id === currentWorkspaceId && n.folder_id === null);
   
@@ -1519,121 +1536,123 @@ export default function FolderScreen() {
         </div>
       )}
 
-      {/* Floating HUD controls */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 bg-card/85 backdrop-blur-md border border-border/80 p-2 rounded-2xl shadow-2xl pointer-events-auto">
-        {/* View mode switcher */}
-        <div className="flex bg-surface border border-border/60 p-1 rounded-xl gap-1">
-          <button
-            onClick={() => setViewMode('dashboard')}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setViewMode('board')}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
-          >
-            Board
-          </button>
-          <button
-            onClick={() => setViewMode('grid')}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
-          >
-            Grid
-          </button>
-          <button
-            onClick={() => setViewMode('list')}
-            className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
-              viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
-            }`}
-          >
-            List
-          </button>
-        </div>
-
-        {/* Zoom controls (Only in Board mode) */}
-        {viewMode === 'board' && (
-          <div className="flex items-center gap-2 border-l border-border/60 pl-3">
-            <span className="text-[10px] font-mono text-text-muted select-none w-10 text-right">
-              {zoomPercent}%
-            </span>
+      {/* Floating HUD controls (Hidden and moved to right-click menu) */}
+      {false && (
+        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3 bg-card/85 backdrop-blur-md border border-border/80 p-2 rounded-2xl shadow-2xl pointer-events-auto">
+          {/* View mode switcher */}
+          <div className="flex bg-surface border border-border/60 p-1 rounded-xl gap-1">
             <button
-              onClick={() => {
-                const newZoom = Math.min(2.5, zoomRef.current + 0.1);
-                zoomRef.current = newZoom;
-                setZoom(newZoom);
-                if (contentRef.current) {
-                  contentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${newZoom})`;
-                }
-              }}
-              className="w-7 h-7 bg-surface border border-border/60 hover:border-accent text-text hover:text-accent rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
+              onClick={() => setViewMode('dashboard')}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
+                viewMode === 'dashboard' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
             >
-              +
+              Dashboard
             </button>
             <button
-              onClick={() => {
-                const newZoom = Math.max(0.25, zoomRef.current - 0.1);
-                zoomRef.current = newZoom;
-                setZoom(newZoom);
-                if (contentRef.current) {
-                  contentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${newZoom})`;
-                }
-              }}
-              className="w-7 h-7 bg-surface border border-border/60 hover:border-accent text-text hover:text-accent rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
+              onClick={() => setViewMode('board')}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
+                viewMode === 'board' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
             >
-              -
+              Board
             </button>
             <button
-              onClick={() => {
-                zoomRef.current = 1;
-                panOffsetRef.current = { x: 0, y: 0 };
-                setZoom(1);
-                setPanOffset({ x: 0, y: 0 });
-                if (contentRef.current) {
-                  contentRef.current.style.transform = `translate(0px, 0px) scale(1)`;
-                }
-              }}
-              className="px-2 py-1 bg-surface border border-border/60 hover:border-accent text-[8px] font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all active:scale-90"
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
+                viewMode === 'grid' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
             >
-              Reset
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider transition-all duration-150 cursor-pointer border-none ${
+                viewMode === 'list' ? 'bg-text text-bg shadow-md font-extrabold' : 'text-text-muted hover:text-text hover:bg-surface/50'
+              }`}
+            >
+              List
             </button>
           </div>
-        )}
 
-        {/* HUD Create Button */}
-        <button
-          onClick={() => {
-            if (currentFolderId === null) {
-              const boardEl = boardRef.current;
-              const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
-              const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
-              setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
-              setIsCreatingMenu(true);
-            } else {
-              handleCreateHUD('note');
-            }
-          }}
-          className="bg-text hover:opacity-90 text-bg px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-1 font-sans border-none"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>New</span>
-        </button>
+          {/* Zoom controls (Only in Board mode) */}
+          {viewMode === 'board' && (
+            <div className="flex items-center gap-2 border-l border-border/60 pl-3">
+              <span className="text-[10px] font-mono text-text-muted select-none w-10 text-right">
+                {zoomPercent}%
+              </span>
+              <button
+                onClick={() => {
+                  const newZoom = Math.min(2.5, zoomRef.current + 0.1);
+                  zoomRef.current = newZoom;
+                  setZoom(newZoom);
+                  if (contentRef.current) {
+                    contentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${newZoom})`;
+                  }
+                }}
+                className="w-7 h-7 bg-surface border border-border/60 hover:border-accent text-text hover:text-accent rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
+              >
+                +
+              </button>
+              <button
+                onClick={() => {
+                  const newZoom = Math.max(0.25, zoomRef.current - 0.1);
+                  zoomRef.current = newZoom;
+                  setZoom(newZoom);
+                  if (contentRef.current) {
+                    contentRef.current.style.transform = `translate(${panOffsetRef.current.x}px, ${panOffsetRef.current.y}px) scale(${newZoom})`;
+                  }
+                }}
+                className="w-7 h-7 bg-surface border border-border/60 hover:border-accent text-text hover:text-accent rounded-lg flex items-center justify-center text-xs font-bold cursor-pointer transition-all active:scale-90"
+              >
+                -
+              </button>
+              <button
+                onClick={() => {
+                  zoomRef.current = 1;
+                  panOffsetRef.current = { x: 0, y: 0 };
+                  setZoom(1);
+                  setPanOffset({ x: 0, y: 0 });
+                  if (contentRef.current) {
+                    contentRef.current.style.transform = `translate(0px, 0px) scale(1)`;
+                  }
+                }}
+                className="px-2 py-1 bg-surface border border-border/60 hover:border-accent text-[8px] font-bold uppercase tracking-wider rounded-lg cursor-pointer transition-all active:scale-90"
+              >
+                Reset
+              </button>
+            </div>
+          )}
 
-        {/* Settings Button */}
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
-          className="bg-surface border border-border/60 hover:bg-surface/50 text-text-muted hover:text-text p-2 rounded-xl transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
-          title="Settings"
-        >
-          <Settings className="w-3.5 h-3.5" />
-        </button>
-      </div>
+          {/* HUD Create Button */}
+          <button
+            onClick={() => {
+              if (currentFolderId === null) {
+                const boardEl = boardRef.current;
+                const x = boardEl ? boardEl.clientWidth / 2 - 144 - panOffsetRef.current.x : 150;
+                const y = boardEl ? boardEl.clientHeight / 2 - 72 - panOffsetRef.current.y : 150;
+                setCreationPos({ x: x / zoomRef.current, y: y / zoomRef.current });
+                setIsCreatingMenu(true);
+              } else {
+                handleCreateHUD('note');
+              }
+            }}
+            className="bg-text hover:opacity-90 text-bg px-3.5 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-lg active:scale-95 flex items-center gap-1 font-sans border-none"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>New</span>
+          </button>
+
+          {/* Settings Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-settings'))}
+            className="bg-surface border border-border/60 hover:bg-surface/50 text-text-muted hover:text-text p-2 rounded-xl transition-all cursor-pointer shadow-md active:scale-95 flex items-center justify-center"
+            title="Settings"
+          >
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
     </div>
   );
