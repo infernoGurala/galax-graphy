@@ -13,11 +13,9 @@ import {
   Sparkles,
   Zap,
   Activity,
-  CheckCircle,
   Copy,
   Check,
-  FileText,
-  Bookmark
+  FileText
 } from 'lucide-react';
 
 const YoutubeIcon = ({ className = '', ...props }) => (
@@ -57,7 +55,6 @@ export default function YoutubeWorkspaceScreen() {
 
   // Advanced interactive states
   const [sortBy, setSortBy] = useState('newest');
-  const [filterTag, setFilterTag] = useState('all');
   const [expandedNotesId, setExpandedNotesId] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
   const [localNotes, setLocalNotes] = useState('');
@@ -175,26 +172,6 @@ export default function YoutubeWorkspaceScreen() {
   };
 
   // Functional Mutators
-  const handleToggleWatched = async (id) => {
-    const updatedLinks = links.map(link => 
-      link.id === id ? { ...link, watched: !link.watched } : link
-    );
-    await saveWorkspaceMetadata(currentWorkspaceId, 'youtube', updatedLinks);
-  };
-
-  const handleUpdateNotes = async (id, notesText) => {
-    const updatedLinks = links.map(link => 
-      link.id === id ? { ...link, notes: notesText } : link
-    );
-    await saveWorkspaceMetadata(currentWorkspaceId, 'youtube', updatedLinks);
-  };
-
-  const handleUpdateTag = async (id, tagValue) => {
-    const updatedLinks = links.map(link => 
-      link.id === id ? { ...link, customTag: tagValue } : link
-    );
-    await saveWorkspaceMetadata(currentWorkspaceId, 'youtube', updatedLinks);
-  };
 
   // Local state notes buffer
   const handleNotesFocus = (id, currentVal) => {
@@ -222,34 +199,12 @@ export default function YoutubeWorkspaceScreen() {
     { title: 'Nature Relaxation 4K', desc: 'Forest birds and rain ambience', url: 'https://www.youtube.com/watch?v=IPUQXKzpHZ8' }
   ];
 
-  // ADHD Gamified Stats Helper
-  const getVideoStats = (title) => {
-    const t = title.toLowerCase();
-    if (t.includes('lofi') || t.includes('music') || t.includes('chill') || t.includes('relax') || t.includes('sound') || t.includes('rain')) {
-      return { tag: 'Ambient', power: '+15 Focus', color: 'bg-emerald-500/10 border-emerald-500/35 text-emerald-400 ring-emerald-500/20' };
-    }
-    if (t.includes('react') || t.includes('code') || t.includes('learn') || t.includes('program') || t.includes('next') || t.includes('tutorial') || t.includes('dev')) {
-      return { tag: 'Brain-Up', power: '+30 Skill', color: 'bg-indigo-500/10 border-indigo-500/35 text-indigo-400 ring-indigo-500/20' };
-    }
-    if (t.includes('space') || t.includes('universe') || t.includes('nebula') || t.includes('cosmos') || t.includes('science') || t.includes('exploration')) {
-      return { tag: 'Cosmos', power: '+50 Wonder', color: 'bg-purple-500/10 border-purple-500/35 text-purple-400 ring-purple-500/20' };
-    }
-    return { tag: 'Feed Item', power: '+10 Vibe', color: 'bg-rose-500/10 border-rose-500/35 text-rose-400 ring-rose-500/20' };
+  const handleUpdateNotes = async (id, notesText) => {
+    const updatedLinks = links.map(link => 
+      link.id === id ? { ...link, notes: notesText } : link
+    );
+    await saveWorkspaceMetadata(currentWorkspaceId, 'youtube', updatedLinks);
   };
-
-  // Filtering and Sorting pipelines
-  let displayLinks = links.filter(link => 
-    link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    link.authorName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  if (filterTag !== 'all') {
-    displayLinks = displayLinks.filter(link => {
-      const stats = getVideoStats(link.title);
-      const activeTag = link.customTag || stats.tag;
-      return activeTag === filterTag;
-    });
-  }
 
   displayLinks.sort((a, b) => {
     if (sortBy === 'newest') {
@@ -258,13 +213,13 @@ export default function YoutubeWorkspaceScreen() {
     if (sortBy === 'oldest') {
       return new Date(a.addedAt) - new Date(b.addedAt);
     }
-    if (sortBy === 'unwatched') {
-      if (a.watched && !b.watched) return 1;
-      if (!a.watched && b.watched) return -1;
-      return new Date(b.addedAt) - new Date(a.addedAt);
-    }
     return 0;
   });
+
+  let displayLinks = links.filter(link => 
+    link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    link.authorName.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (!currentWorkspace) return null;
 
@@ -324,7 +279,7 @@ export default function YoutubeWorkspaceScreen() {
         {/* Input & Search Interface */}
         <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto items-stretch">
           
-          {/* Sorting & Filtering Controls */}
+          {/* Sorting Controls */}
           {links.length > 0 && (
             <div className="flex gap-2.5 flex-1 md:flex-initial">
               <select
@@ -334,19 +289,6 @@ export default function YoutubeWorkspaceScreen() {
               >
                 <option value="newest">Newest First</option>
                 <option value="oldest">Oldest First</option>
-                <option value="unwatched">Unwatched First</option>
-              </select>
-
-              <select
-                value={filterTag}
-                onChange={(e) => setFilterTag(e.target.value)}
-                className="bg-surface/50 border border-border/80 hover:border-accent/30 text-xs text-text-muted hover:text-text rounded-xl px-3 py-2 outline-none cursor-pointer transition-colors"
-              >
-                <option value="all">All Tags</option>
-                <option value="Ambient">Ambient</option>
-                <option value="Brain-Up">Brain-Up</option>
-                <option value="Cosmos">Cosmos</option>
-                <option value="Feed Item">Feed Item</option>
               </select>
             </div>
           )}
@@ -458,34 +400,25 @@ export default function YoutubeWorkspaceScreen() {
       ) : (
         /* Video Grid Feed */
         <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {displayLinks.map((link, idx) => {
-            const stats = getVideoStats(link.title);
-            const activeTag = link.customTag || stats.tag;
-            
-            return (
-              <YoutubeVideoCard
-                key={link.id}
-                link={link}
-                idx={idx}
-                stats={stats}
-                activeTag={activeTag}
-                activeVideoId={activeVideoId}
-                setActiveVideoId={setActiveVideoId}
-                handleToggleWatched={handleToggleWatched}
-                expandedNotesId={expandedNotesId}
-                setExpandedNotesId={setExpandedNotesId}
-                handleUpdateTag={handleUpdateTag}
-                activeNotesId={activeNotesId}
-                localNotes={localNotes}
-                setLocalNotes={setLocalNotes}
-                handleNotesFocus={handleNotesFocus}
-                handleNotesBlur={handleNotesBlur}
-                handleCopyLink={handleCopyLink}
-                copiedId={copiedId}
-                handleRemoveVideo={handleRemoveVideo}
-              />
-            );
-          })}
+          {displayLinks.map((link, idx) => (
+            <YoutubeVideoCard
+              key={link.id}
+              link={link}
+              idx={idx}
+              activeVideoId={activeVideoId}
+              setActiveVideoId={setActiveVideoId}
+              expandedNotesId={expandedNotesId}
+              setExpandedNotesId={setExpandedNotesId}
+              activeNotesId={activeNotesId}
+              localNotes={localNotes}
+              setLocalNotes={setLocalNotes}
+              handleNotesFocus={handleNotesFocus}
+              handleNotesBlur={handleNotesBlur}
+              handleCopyLink={handleCopyLink}
+              copiedId={copiedId}
+              handleRemoveVideo={handleRemoveVideo}
+            />
+          ))}
         </div>
       )}
     </div>
@@ -495,14 +428,10 @@ export default function YoutubeWorkspaceScreen() {
 function YoutubeVideoCard({
   link,
   idx,
-  stats,
-  activeTag,
   activeVideoId,
   setActiveVideoId,
-  handleToggleWatched,
   expandedNotesId,
   setExpandedNotesId,
-  handleUpdateTag,
   activeNotesId,
   localNotes,
   setLocalNotes,
@@ -540,9 +469,7 @@ function YoutubeVideoCard({
       style={{ 
         animationDelay: `${idx * 0.05}s`,
       }}
-      className={`animate-card opacity-0 bg-card border ${
-        link.watched ? 'border-border/40 opacity-75' : 'border-border/70 hover:border-accent/30'
-      } rounded-2xl shadow-xl hover:shadow-xl hover:shadow-accent/5 transition-all duration-300 flex flex-col overflow-hidden group premium-card`}
+      className="animate-card opacity-0 bg-card border border-border/70 hover:border-accent/30 rounded-2xl shadow-xl hover:shadow-xl hover:shadow-accent/5 transition-all duration-300 flex flex-col overflow-hidden group premium-card"
     >
       <div className="card-glare-overlay" />
       
@@ -586,22 +513,7 @@ function YoutubeVideoCard({
               </div>
             </div>
 
-            {/* Watch & Tag Headers */}
-            <div className="absolute top-3 left-3 right-3 flex justify-between items-center pointer-events-none font-mono">
-              <span className={`text-[9px] font-bold uppercase px-2.5 py-0.5 rounded-full border ring-2 ${stats.color} shadow-lg backdrop-blur-md`}>
-                {activeTag}
-              </span>
-              <span className="text-[9px] bg-black/60 border border-border/40 text-yellow-400 font-bold px-2 py-0.5 rounded-full backdrop-blur-md shadow-lg flex items-center gap-0.5">
-                <Zap className="w-2.5 h-2.5 fill-current" /> {stats.power}
-              </span>
-            </div>
 
-            {/* Watched stamp */}
-            {link.watched && (
-              <div className="absolute bottom-3 left-3 bg-red-600/90 text-white text-[8px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-md shadow-lg flex items-center gap-1 backdrop-blur-sm pointer-events-none font-mono">
-                <Check className="w-3.5 h-3.5" /> Completed
-              </div>
-            )}
           </div>
         )}
       </div>
@@ -610,24 +522,9 @@ function YoutubeVideoCard({
       <div className="p-5 flex-1 flex flex-col justify-between gap-3.5 bg-surface/20 relative z-10 transform translate-z-[15px]">
         <div className="min-w-0">
           <div className="flex items-start justify-between gap-2.5">
-            <h3 className={`font-extrabold text-xs md:text-sm text-text leading-snug line-clamp-2 group-hover:text-red-400 transition-colors duration-200 ${
-              link.watched ? 'line-through text-text-muted' : ''
-            }`}>
+            <h3 className="font-extrabold text-xs md:text-sm text-text leading-snug line-clamp-2 group-hover:text-red-400 transition-colors duration-200">
               {link.title}
             </h3>
-            
-            {/* Completion Toggle */}
-            <button
-              onClick={() => handleToggleWatched(link.id)}
-              className={`p-1.5 rounded-lg border transition-all active:scale-90 cursor-pointer ${
-                link.watched 
-                  ? 'bg-red-500/20 border-red-500/40 text-red-400 font-bold' 
-                  : 'bg-surface/30 border-border/80 text-text-muted hover:text-text'
-              }`}
-              title={link.watched ? 'Mark unwatched' : 'Mark watched'}
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-            </button>
           </div>
 
           <p className="text-[10px] text-text-dim font-bold mt-1.5 truncate flex items-center gap-1.5 font-mono">
@@ -648,21 +545,7 @@ function YoutubeVideoCard({
               <span>Notes {link.notes ? '(Active)' : ''}</span>
             </button>
 
-            {/* Manual Tag Override */}
-            <div className="flex items-center gap-1">
-              <Bookmark className="w-3 h-3 text-text-dim" />
-              <select
-                value={link.customTag || 'auto'}
-                onChange={(e) => handleUpdateTag(link.id, e.target.value === 'auto' ? '' : e.target.value)}
-                className="bg-transparent border-0 text-[9px] text-text-muted hover:text-text font-bold outline-none cursor-pointer"
-              >
-                <option value="auto">Tag: Auto</option>
-                <option value="Ambient">Ambient</option>
-                <option value="Brain-Up">Brain-Up</option>
-                <option value="Cosmos">Cosmos</option>
-                <option value="Feed Item">Feed Item</option>
-              </select>
-            </div>
+
           </div>
 
           {isNotesExpanded && (
